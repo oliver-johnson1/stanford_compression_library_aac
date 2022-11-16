@@ -57,26 +57,24 @@ def get_window_coeffs(window_shape, N, n):
     elif window_shape == 0:
         #### They are exactly the same for left and right?????????#########
         if n >= 0 and n <= N/2:
-            return math.sin(math.pi / N *(n+ 1/2))
+            return math.sin(math.pi / N *(n + 1/2))
         elif N/2 >= 0 and n <= N:
-            return math.sin(math.pi / N *(n+ 1/2))
+            return math.sin(math.pi / N *(n + 1/2))
 
-def overlap_add(z_r, z_l,b=False):
+def overlap_add(z_r, z_l):
     """
-    Should overlap and add within the EIGHT_SHORT window seq 
-    as well as the first (left) half of every window seq is overlap and add with second (right) half of prev window_seq
+    Almost the same overlap and add within the EIGHT_SHORT window seq 
+    First (left) half of every window seq is overlap and add with second (right) half of prev window_seq
 
     Input:
-        - b: bool if EIGHT_SHORT
-        - z_l: left
-        - z_r: right
+        - z_l: left (prev_window_seq)
+        - z_r: right (current window_seq)
 
     Output:
-        - out_i_n: ### Something convoluted if bool is EIGHT_SHORT
         - out_i_n: z_l + z_r (for 0<=n<N/1, N=2048) if bool is not EIGHT_SHORT
 
     """
-    pass
+    return z_r + z_l
 
 def w_left(n, N, prev_window_shape):
     """
@@ -84,7 +82,7 @@ def w_left(n, N, prev_window_shape):
     """
     return get_window_coeffs(prev_window_shape, N, n)
 
-def window(n, window_shape, seq_type):
+def window(n, window_shape, seq_type, prev):
     """
     Based on the sequence type (ONLY_LONG_SEQ, LONG_START_SEQ, etc.), and n, get the window
 
@@ -92,6 +90,7 @@ def window(n, window_shape, seq_type):
         - n: int
         - window_shape: 0 or 1
         - seq_type: string
+        - prev: previous window shape
     
     Output:
         w: window
@@ -119,12 +118,19 @@ def window(n, window_shape, seq_type):
             # Separate into w_0; w_1 through w_7
             ###### Uhhhh, Need to come back to this, might need to restructure/rethink since it uses each individual w_i for z (pg. 100) [overlap and add between]
             ### For loop to get w_1 through w_7?
+            w = []
             if n >= 0 and n < 128:
-                ### prev
-                w_0 = w_left(n, 256, prev)
-                w_17 = get_window_coeffs(window_shape, 256, n)
+                # w_0 case differs
+                w.append(w_left(n, 256, prev))
             elif n >= 128 and n < 256:
-                pass  
+                # w_0
+                w.append(get_window_coeffs(window_shape, 256, n))
+
+            # loop through to get w_1 to w_7, the window_shape and n should take care whether its coeffs
+            for i in range(7):
+                w.append(get_window_coeffs(window_shape, 256, n))
+            return w  
+                
         
         case "LONG_STOP_SEQ":
             if n >= 0 and n < 448:

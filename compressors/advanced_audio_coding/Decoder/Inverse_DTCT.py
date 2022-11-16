@@ -6,13 +6,13 @@ import math
 # def forward_DTCT():
 #     pass 
 
-def inverse_DTCT(n: int,i: int,N: int,spec: list):
+def inverse_DTCT(n: int, N: int,spec: list):
     """
     For decoding
 
     Inputs: 
         - n: sample index
-        - i: window index
+        - i: window index (which is part of the sum, so not an input)
         - k: spectral coefficient index (is this just the range for the sum??? Does this need to be passed through???)
         - N: window length based on the window_seq val
         - n_0: (N/2 + 1)/2 [might just calculate this instead of passing it through]
