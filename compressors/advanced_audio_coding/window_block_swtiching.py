@@ -126,7 +126,7 @@ def window(n, window_shape, seq_type, prev):
                 # w_0
                 w.append(get_window_coeffs(window_shape, 256, n))
 
-            # loop through to get w_1 to w_7, the window_shape and n should take care whether its coeffs
+            # loop through to get w_1 to w_7, the window_shape and n should take care of which coeffs it is
             for i in range(7):
                 w.append(get_window_coeffs(window_shape, 256, n))
             return w  
