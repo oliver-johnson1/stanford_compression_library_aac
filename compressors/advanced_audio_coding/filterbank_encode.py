@@ -53,9 +53,10 @@ def filterbank(x_i_n, window_sequence, window_shape):
 
         ### concatenate ??
         # x_i_n_prime??? (and then concatenate x_prime into z_in???)
+        ### wants 0->1024 of prev, and 1024->2048 of current, but what if it's the EIGHT seq???
         x_i_n_prime = prev_x_i_n.extend(x_i_n[1024:])
         z_in.append(x_i_n_prime)
-        prev_x_i_n = x_i_n_prime
+        prev_x_i_n = x_i_n[1024:]
 
 
         X_i_k.append(forward_DTCT(k, i, N, z_in))
