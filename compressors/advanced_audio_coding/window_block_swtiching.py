@@ -116,7 +116,6 @@ def window(n, window_shape, seq_type, prev):
         
         case "EIGHT_SHORT_SEQ":
             # Separate into w_0; w_1 through w_7
-            ###### Uhhhh, Need to come back to this, might need to restructure/rethink since it uses each individual w_i for z (pg. 100) [overlap and add between]
             ### For loop to get w_1 through w_7?
             w = []
             if n >= 0 and n < 128:

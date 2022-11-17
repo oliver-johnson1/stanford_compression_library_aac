@@ -8,7 +8,7 @@ def filterbank(spec, window_sequence, window_shape):
         - inversely quantized spectra (spec???) 
         - filterbank control info (guessing):
                 - window_sequence: (2 bits) tell which sequence it is (see get_window_sequence.py for seq types) 
-                - window_shape: 0 (KBD) or 1 (Sine)
+                - window_shape: 0 (KBD) or 1 (Sine) ### However, window shape doesn't change unless I input a new window shape??? (make a class???)
                 (from single_channel_element(), channel_pair_element()?)
         -i: window index (### do I pass it in???)
     Output: Time domain reconstructed audio signals
