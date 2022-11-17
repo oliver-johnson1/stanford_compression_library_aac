@@ -13,7 +13,7 @@ def ksb(n,a):
     # if n >= 0 and n <= N/2:
         # w_prime = (math.pi * a * (1 - (n - N/4)/(N/4)))
         ### Maybe scipy signal kaiser works???
-    w_prime = signal.kaiser(n,a)
+    w_prime = signal.windows.kaiser(n,a)
     return w_prime
     # else:
     #     raise("Not within range for ksb")
@@ -56,10 +56,10 @@ def get_window_coeffs(window_shape, N, n):
 
     elif window_shape == 0:
         #### They are exactly the same for left and right?????????#########
-        if n >= 0 and n <= N/2:
-            return math.sin(math.pi / N *(n + 1/2))
-        elif N/2 >= 0 and n <= N:
-            return math.sin(math.pi / N *(n + 1/2))
+        # if n >= 0 and n <= N/2:
+        return math.sin(math.pi / N *(n + 1/2))
+        # elif N/2 >= 0 and n <= N:
+            # return math.sin(math.pi / N *(n + 1/2))
 
 def overlap_add(z_r, z_l):
     """
@@ -82,7 +82,7 @@ def w_left(n, N, prev_window_shape):
     """
     return get_window_coeffs(prev_window_shape, N, n)
 
-def window(n, window_shape, seq_type, prev):
+def window(n:int, window_shape, seq_type:str, prev):
     """
     Based on the sequence type (ONLY_LONG_SEQ, LONG_START_SEQ, etc.), and n, get the window
 
@@ -90,7 +90,7 @@ def window(n, window_shape, seq_type, prev):
         - n: int
         - window_shape: 0 or 1
         - seq_type: string
-        - prev: previous window shape
+        - prev: previous window shape (still 0 or 1)
     
     Output:
         w: window
@@ -135,7 +135,6 @@ def window(n, window_shape, seq_type, prev):
             if n >= 0 and n < 448:
                 return 0.0
             elif n >= 448 and n < 576:
-                ### prev
                 return w_left(n - 448, 256, prev)
             elif n >= 576 and n < 1024:
                 return 1.0
