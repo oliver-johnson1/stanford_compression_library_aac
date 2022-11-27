@@ -2,7 +2,7 @@ from DTCT import inverse_DTCT
 from get_window_sequence import get_window_sequence
 from window_block_swtiching import window, overlap_add  
 
-def filterbank(spec, window_sequence, window_shape):
+def filterbank_decoder(spec, window_sequence, window_shape):
     """
     Inputs: 
         - inversely quantized spectra (spec???) 
@@ -24,11 +24,11 @@ def filterbank(spec, window_sequence, window_shape):
     # window sequence is 2 bits (the bits correspond to the cases)
     N, seq_type = get_window_sequence(window_sequence)
 
-    ### Do you loop to get n and i???? (probably for n, not sure about i)
+    ### NOTE Do you loop to get n and i???? (probably for n, not sure about i)
     for n in range(N):
 
         # Something with using the sequence type, and getting the window (using window coeffs), and then returning time domain values (z_i,n)
-        ### In the beginning of loop, no previous window exists, so prev window is zero? maybe???
+        ### NOTE In the beginning of loop, no previous window exists, so prev window is zero? maybe???
         if i == 0:
             prev = 0
             i += 1
@@ -72,8 +72,10 @@ def filterbank(spec, window_sequence, window_shape):
                 intermediate = inverse_DTCT(n-1344, i, N,spec) * w[7]
 
             z_i_n.append(intermediate)
-        ### overlap and add these z_i_n prev and z_i_n vals
+        ### NOTE overlap and add these z_i_n prev and z_i_n vals (second half of prev and first half of current)
         if len(z_i_n) > 1:
-            out_i_n.append(overlap_add(z_i_n[-2], z_i_n[-1]))
+            prev = z_i_n[-2]
+            curr = z_i_n[-1]
+            out_i_n.append(overlap_add(prev[len(prev)/2:], curr[:len(curr)/2]))
 
     return out_i_n
