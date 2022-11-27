@@ -1,4 +1,4 @@
-from DTCT import inverse_DTCT
+from compressors.advanced_audio_coding.MDCT import inverse_MDCT
 from get_window_sequence import get_window_sequence
 from window_block_swtiching import window, overlap_add  
 
@@ -44,7 +44,7 @@ def filterbank_decoder(spec, window_sequence, window_shape):
 
         if seq_type != "EIGHT_SHORT_SEQ":
             # n: sample index, i: window index
-            x_i_n = inverse_DTCT(n, i, N,spec)
+            x_i_n = inverse_MDCT(n, i, N,spec)
 
             # Get the z time domain vals
             z_i_n.append(w * x_i_n)
@@ -53,23 +53,23 @@ def filterbank_decoder(spec, window_sequence, window_shape):
             if (n >= 0 and n < 448) or (n >= 1600 and n <2048):
                 intermediate = 0
             elif n >= 448 and n < 576:
-                intermediate = inverse_DTCT(n-448, i, N,spec) * w[0]
+                intermediate = inverse_MDCT(n-448, i, N,spec) * w[0]
             elif n >= 576 and n < 704:
-                intermediate = inverse_DTCT(n-448, i, N,spec) * w[0] + inverse_DTCT(n-576, i, N,spec) * w[1]
+                intermediate = inverse_MDCT(n-448, i, N,spec) * w[0] + inverse_MDCT(n-576, i, N,spec) * w[1]
             elif n >= 704 and n < 832:
-                intermediate = inverse_DTCT(n-576, i, N,spec) * w[1] + inverse_DTCT(n-704, i, N,spec) * w[2]
+                intermediate = inverse_MDCT(n-576, i, N,spec) * w[1] + inverse_MDCT(n-704, i, N,spec) * w[2]
             elif n >= 832 and n < 960:
-                intermediate = inverse_DTCT(n-704, i, N,spec) * w[2] + inverse_DTCT(n-832, i, N,spec) * w[3]
+                intermediate = inverse_MDCT(n-704, i, N,spec) * w[2] + inverse_MDCT(n-832, i, N,spec) * w[3]
             elif n >= 960 and n < 1088:
-                intermediate = inverse_DTCT(n-832, i, N,spec) * w[3] + inverse_DTCT(n-960, i, N,spec) * w[4]
+                intermediate = inverse_MDCT(n-832, i, N,spec) * w[3] + inverse_MDCT(n-960, i, N,spec) * w[4]
             elif n >= 1088 and n < 1216:
-                intermediate = inverse_DTCT(n-960, i, N,spec) * w[4] + inverse_DTCT(n-1088, i, N,spec) * w[5]
+                intermediate = inverse_MDCT(n-960, i, N,spec) * w[4] + inverse_MDCT(n-1088, i, N,spec) * w[5]
             elif n >= 1216 and n < 1344:
-                intermediate = inverse_DTCT(n-1088, i, N,spec) * w[5] + inverse_DTCT(n-1216, i, N,spec) * w[6]
+                intermediate = inverse_MDCT(n-1088, i, N,spec) * w[5] + inverse_MDCT(n-1216, i, N,spec) * w[6]
             elif n >= 1344 and n < 1472:
-                intermediate = inverse_DTCT(n-1216, i, N,spec) * w[6] + inverse_DTCT(n-1344, i, N,spec) * w[7]
+                intermediate = inverse_MDCT(n-1216, i, N,spec) * w[6] + inverse_MDCT(n-1344, i, N,spec) * w[7]
             elif n >= 1472 and n < 1600:
-                intermediate = inverse_DTCT(n-1344, i, N,spec) * w[7]
+                intermediate = inverse_MDCT(n-1344, i, N,spec) * w[7]
 
             z_i_n.append(intermediate)
         ### NOTE overlap and add these z_i_n prev and z_i_n vals (second half of prev and first half of current)

@@ -3,7 +3,7 @@ import numpy as np
 
 # Just the equations for computing inverse Discrete Time Cosine Transform (DTCT)
 # The psychoacoustic model should perform the fft on the input (can implement here as well)
-def forward_DTCT(k: int, i: int, N: int, z_in: list):
+def forward_MDCT(k: int, i: int, N: int, z_in: list):
     """
     For encoding
 
@@ -24,13 +24,14 @@ def forward_DTCT(k: int, i: int, N: int, z_in: list):
     n_0 = (N/2 + 1)/2
     ns = N-1
     for n in range(ns):
+        ### This is if it's the eight sequence
         # X_i_k += (z_in[i][n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
         X_i_k += (z_in[n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
     X_i_k *= 2
     return X_i_k
 
 
-def inverse_DTCT(n: int, i: int, N: int,spec: list):
+def inverse_MDCT(n: int, i: int, N: int,spec: list):
     """
     For decoding
 

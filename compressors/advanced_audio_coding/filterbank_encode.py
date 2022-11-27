@@ -1,4 +1,4 @@
-from DTCT import forward_DTCT
+from compressors.advanced_audio_coding.MDCT import forward_MDCT
 from get_window_sequence import get_window_sequence
 from window_block_swtiching import window  
 
@@ -47,7 +47,10 @@ def filterbank_encoder(x_i_n, window_sequence, window_shape):
             i += 1
 
         # take the x_i_n's and 1024 val of previous window_seq concatenated with 1024 vals of current block (= x_prime)
-        # Get the window w (###where does this come in???)
+        # Get the window w 
+        ### TODO: With the EIGHT seq, need to keep track of "i", 
+        # since this is where the block idx matters
+        # and thus, has a different method w/ concatentating???
         w = window(k, window_shape, seq_type, prev)
 
         # Keep track of previous window shape
@@ -63,7 +66,7 @@ def filterbank_encoder(x_i_n, window_sequence, window_shape):
         # z_in[1] = x_i_n[1024:]
         prev_x_i_n = x_i_n[1024:]
 
-        mdct = forward_DTCT(k, i, N, z_in)
+        mdct = forward_MDCT(k, i, N, z_in)
         X_i_k.append(mdct)
 
     ###NOTE return X_i_k? and bitstream control signal
