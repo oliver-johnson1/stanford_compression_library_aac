@@ -24,7 +24,8 @@ def forward_DTCT(k: int, i: int, N: int, z_in: list):
     n_0 = (N/2 + 1)/2
     ns = N-1
     for n in range(ns):
-        X_i_k += (z_in[i][n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
+        # X_i_k += (z_in[i][n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
+        X_i_k += (z_in[n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
     X_i_k *= 2
     return X_i_k
 

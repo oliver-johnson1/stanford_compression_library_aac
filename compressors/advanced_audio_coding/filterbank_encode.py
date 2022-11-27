@@ -2,6 +2,8 @@ from DTCT import forward_DTCT
 from get_window_sequence import get_window_sequence
 from window_block_swtiching import window  
 
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def filterbank_encoder(x_i_n, window_sequence, window_shape):
@@ -29,14 +31,14 @@ def filterbank_encoder(x_i_n, window_sequence, window_shape):
     X_i_k = []
     tracking_window_shapes = []
     i = 0 #Block idx, initial is zero
-    z_in = []
+    # z_in = np.zeros(shape=(2,1024))
     prev_x_i_n = x_i_n[:1024]
 
     # window sequence is 2 bits (the bits correspond to the cases)
     N, seq_type = get_window_sequence(window_sequence)
 
     ###NOTE For k in range N/2 (from MDCT range pg. 170)? loop through spectral coeff idx (does that makes sense???) (no, since k is just in range 0 to N/2)
-    for k in range(N/2):
+    for k in range(int(N/2)):
         if i == 0:
             prev = 0
             i += 1
@@ -54,12 +56,28 @@ def filterbank_encoder(x_i_n, window_sequence, window_shape):
         ###NOTE concatenate ??
         # x_i_n_prime??? (and then concatenate x_prime into z_in???)
         ###NOTE wants 0->1024 of prev, and 1024->2048 of current, but what if it's the EIGHT seq???
-        x_i_n_prime = prev_x_i_n.extend(x_i_n[1024:])
-        z_in.append(x_i_n_prime)
+        x_i_n_prime = np.append(prev_x_i_n,x_i_n[1024:])
+        # z_in is the windowed input seq
+        z_in = x_i_n_prime * w
+        # z_in[0] = prev_x_i_n
+        # z_in[1] = x_i_n[1024:]
         prev_x_i_n = x_i_n[1024:]
 
-
-        X_i_k.append(forward_DTCT(k, i, N, z_in))
+        mdct = forward_DTCT(k, i, N, z_in)
+        X_i_k.append(mdct)
 
     ###NOTE return X_i_k? and bitstream control signal
     return X_i_k
+
+if __name__ == "__main__":
+    # testing
+    N = 2048
+    Fs = 44100
+    f = 3000.0
+    n = np.arange(N)
+    x = np.cos(2 * np.pi * f * n / Fs) # generated fake signal
+
+    seq = 1
+    shape = 0
+    x_i_k = filterbank_encoder(x, seq, shape)
+    print(len(x_i_k))
