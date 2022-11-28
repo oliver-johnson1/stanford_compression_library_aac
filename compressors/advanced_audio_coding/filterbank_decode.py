@@ -79,3 +79,8 @@ def filterbank_decoder(spec, window_sequence, window_shape):
             out_i_n.append(overlap_add(prev[len(prev)/2:], curr[:len(curr)/2]))
 
     return out_i_n
+
+if __name__ == "__main__":
+    # testing w/o quantizer and scaling
+    # just feed back encoder output into decoder
+    pass

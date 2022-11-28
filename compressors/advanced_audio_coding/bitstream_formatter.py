@@ -5,7 +5,8 @@
 
 ### NOTE, ask why soundfile isn't importing correctly
 
-import soundfile as sf
+# import soundfile as sf
+from scipy.io import wavfile
 import os
 from utils.bitarray_utils import BitArray, uint_to_bitarray
 
@@ -14,7 +15,10 @@ def load_wav_audio(filepath):
     load wav audio as float np array and return the array and the sample rate
     Checks that audio is mono
     '''
-    audio_arr, audio_sr = sf.read(filepath)
+    # audio_arr, audio_sr = sf.read(filepath)
+    # assert len(audio_arr.shape) == 1 # mono
+    # return audio_arr, audio_sr
+    audio_sr, audio_arr = wavfile.read(filepath, mmap=False)
     assert len(audio_arr.shape) == 1 # mono
     return audio_arr, audio_sr
 
@@ -80,6 +84,6 @@ def bit_stream_format_decode(bitstream):
 if __name__ == "__main__":
     pass
     # cur_dir = os.getcwd()
-    # filepath = os.path.join(cur_dir,"input_abba_sound.wav")
-    # filepath = 'input_abba_sound.wav'
+    # filepath = os.path.join(cur_dir,"original.wav")
+    # filepath = 'original.wav'
     # load_wav_audio(filepath)

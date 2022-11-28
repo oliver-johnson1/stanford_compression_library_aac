@@ -80,7 +80,7 @@ if __name__ == "__main__":
     n = np.arange(N)
     x = np.cos(2 * np.pi * f * n / Fs) # generated fake signal
 
-    seq = 1
+    seq = 0
     shape = 0
     x_i_k = filterbank_encoder(x, seq, shape)
     print(len(x_i_k))
