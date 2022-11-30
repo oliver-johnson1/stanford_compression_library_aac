@@ -1,6 +1,7 @@
 import numpy as np
+from scalefactor_bands import get_scalefactor_bands
 
-def calculateThresholds(X, scalefactor, s_h, s_l, thr_q_prev,thr_quiet):
+def calculateThresholds(X, s_h, s_l, thr_q_prev,thr_quiet):
     """
     Calculate psychoacoustic threshold thr(n), an upper limit for the
     quantization noise of the coder.
@@ -18,7 +19,7 @@ def calculateThresholds(X, scalefactor, s_h, s_l, thr_q_prev,thr_quiet):
 
     """
     # Calculation of the energy spectrum
-    N = len(scalefactor) - 1 ###
+    scalefactor, N = get_scalefactor_bands()
     en = np.zeros(N)
     for n in N:
         X_n = X[scalefactor[n]:scalefactor[n+1]]
