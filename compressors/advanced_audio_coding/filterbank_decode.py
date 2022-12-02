@@ -1,8 +1,11 @@
-from compressors.advanced_audio_coding.MDCT import inverse_MDCT
+from MDCT import inverse_MDCT
 from get_window_sequence import get_window_sequence
 from window_block_swtiching import window, overlap_add  
 
-def filterbank_decoder(spec, window_sequence, window_shape):
+from filterbank_encode import filterbank_encoder
+import numpy as np
+
+def filterbank_decoder(spec, window_sequence, window_shape, prev_window_seq):
     """
     Inputs: 
         - inversely quantized spectra (spec???) 
@@ -29,12 +32,13 @@ def filterbank_decoder(spec, window_sequence, window_shape):
 
         # Something with using the sequence type, and getting the window (using window coeffs), and then returning time domain values (z_i,n)
         ### NOTE In the beginning of loop, no previous window exists, so prev window is zero? maybe???
-        if i == 0:
-            prev = 0
-            i += 1
-        else:
-            prev = tracking_window_shapes[-1]
-            i += 1
+        prev = 0
+        # if i == 0:
+        #     prev = 0
+        #     i += 1
+        # else:
+        #     prev = tracking_window_shapes[-1]
+        #     i += 1
 
         # Get the window w
         w = window(n, window_shape, seq_type, prev)
@@ -47,7 +51,8 @@ def filterbank_decoder(spec, window_sequence, window_shape):
             x_i_n = inverse_MDCT(n, i, N,spec)
 
             # Get the z time domain vals
-            z_i_n.append(w * x_i_n)
+            # z_i_n.append(w * x_i_n)
+            z_i_n.append(x_i_n)
         else:
             # Have to do the eight one (in which w should be a list w[0...7])
             if (n >= 0 and n < 448) or (n >= 1600 and n <2048):
@@ -72,15 +77,48 @@ def filterbank_decoder(spec, window_sequence, window_shape):
                 intermediate = inverse_MDCT(n-1344, i, N,spec) * w[7]
 
             z_i_n.append(intermediate)
-        ### NOTE overlap and add these z_i_n prev and z_i_n vals (second half of prev and first half of current)
-        if len(z_i_n) > 1:
-            prev = z_i_n[-2]
-            curr = z_i_n[-1]
-            out_i_n.append(overlap_add(prev[len(prev)/2:], curr[:len(curr)/2]))
+    ### NOTE overlap and add these z_i_n prev and z_i_n vals (second half of prev and first half of current)
+    # if len(z_i_n) > 1:
+        # prev = z_i_n[i-1]
+        # curr = z_i_n[i]
+        # overlapped = overlap_add(prev[len(curr)/2:], curr[:len(curr)/2])
+        # out_i_n.append(overlapped)
+    # If the beginning of the signal, overlapps current with nothing, so just get current as out_i_n
+    # if prev_window_seq is None:
+    #     return z_i_n
+    # else:
+    #     # print(np.shape(prev_window_seq),np.shape(z_i_n))
+    #     out_i_n = overlap_add(prev_window_seq[1024:], z_i_n[:1024])
+    left = z_i_n[:1024]
+    right = z_i_n[1024:]
+
+    dataL = np.dot(w,left)
+    dataR = np.dot(w,right)
+    out_i_n = np.append(dataL, dataR)
 
     return out_i_n
 
 if __name__ == "__main__":
     # testing w/o quantizer and scaling
     # just feed back encoder output into decoder
-    pass
+    # testing
+    N = 2048
+    Fs = 44100
+    f = 3000.0
+    n = np.arange(N)
+    x = np.cos(2 * np.pi * f * n / Fs) # generated fake signal
+
+    seq = 0
+    shape = 0
+    x_i_k = filterbank_encoder(x, seq, shape)
+    
+    # testig decoder
+    prev_win_seq = None
+    prev_win_seq = filterbank_decoder(x_i_k, seq, shape,prev_win_seq)
+    # print(prev_win_seq, 'first filterbank decode')
+    print(len(prev_win_seq))
+    ### Since decoder relies on previous window sequence to overlap and add, use previous filterbank decode output
+    # print(filterbank_decoder(x_i_k, seq, shape,prev_win_seq))
+    # second_window = filterbank_decoder(x_i_k, seq, shape,prev_win_seq)
+    # print(len(second_window))
+    print(x == prev_win_seq)

@@ -50,7 +50,9 @@ def inverse_MDCT(n: int, i: int, N: int,spec: list):
     x_i_n = 0
     n_0 = (N/2 + 1)/2
     k_1 = N/2-1
-    for k in range(k_1):
-        x_i_n += (spec[i][k] * np.cos(n*np.pi/N * (n + n_0) * (k+1/2)))
+    for k in range(int(k_1)):
+        # x_i_n += (spec[i][k] * np.cos(n*np.pi/N * (n + n_0) * (k+1/2)))
+        ## above is for eight seq
+        x_i_n += (spec[k] * np.cos(n*np.pi/N * (n + n_0) * (k+1/2)))
     x_i_n *= 2/N
     return x_i_n
