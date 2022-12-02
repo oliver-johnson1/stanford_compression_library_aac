@@ -1,4 +1,4 @@
-from compressors.advanced_audio_coding.MDCT import forward_MDCT
+from MDCT import forward_MDCT
 from get_window_sequence import get_window_sequence
 from window_block_swtiching import window  
 

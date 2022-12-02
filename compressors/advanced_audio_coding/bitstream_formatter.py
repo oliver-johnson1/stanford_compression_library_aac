@@ -32,7 +32,7 @@ def bit_stream_format_encode(Fs, num_channel, bits_per_sample, num_sample, inter
             - 1 for 8 bits, 2 for 16 bits, etc
         - num of samples in file -> 4-byte int
         - interleaved channel samples
-            - (the filterbank window overlapping)
+            - (the filterbank window overlapping, noiseless coding signal)
 
     Outputs:
         - the bitstream
@@ -41,20 +41,35 @@ def bit_stream_format_encode(Fs, num_channel, bits_per_sample, num_sample, inter
             - the noiselssly coded spectra
 
     """
-    bitstream = BitArray('1')
+    # bitstream = BitArray('1')
 
     # if fs less than or equal to 4 byte int
     if Fs <= 2**31-1:
         fs = uint_to_bitarray(Fs)
     else:
         fs = uint_to_bitarray(2**32)
-    bitstream += fs
+    bitstream = fs
 
     ### NOTE num channels (assume mono??)
     bitstream += BitArray('1')
 
     # num of bits per data sample
-    ### ???????? where do we get that from, filterbank????
+    ### ???????? where do we get that from, filterbank???? 
+    bitstream += pcm()
+
+    # huffman encoded noiseleslly coded spectra
+    # HCB (huffman coding book), sect_cb (section of codebook from 0 to 16)
+    #sect_sfb_offset: pg. 46
+    ZERO_HCB = 0
+    ESC_HCB = 16
+    # Syntax of spectral data (pg. 25):
+    for g in num_window_groups:
+        for i in num_sec[g]:
+            if sect_cb[g][i] != ZERO_HCB and sect_cb[g][i] <= ESC_HCB:
+                for k in range(sect_sfb_offset[g][sect_start[g][i]], sect_sfb_offset[g][sect_end[g][i]]):
+                    if sect_cb[h][i] < FIRST_PAIR_HCB:
+                        bitstream += hcod[sect_cb[g][i]][w][x][y][z] # bits 1-16 (pg. 71)
+
 
 
     return bitstream
@@ -84,6 +99,5 @@ def bit_stream_format_decode(bitstream):
 if __name__ == "__main__":
     pass
     # cur_dir = os.getcwd()
-    # filepath = os.path.join(cur_dir,"original.wav")
-    # filepath = 'original.wav'
-    # load_wav_audio(filepath)
+    # filepath = os.path.join(cur_dir,"advanced_audio_coding/original.wav")
+    # print(load_wav_audio(filepath))
