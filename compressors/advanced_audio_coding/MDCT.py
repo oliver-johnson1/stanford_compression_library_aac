@@ -56,3 +56,18 @@ def inverse_MDCT(n: int, i: int, N: int,spec: list):
         x_i_n += (spec[k] * np.cos(n*np.pi/N * (n + n_0) * (k+1/2)))
     x_i_n *= 2/N
     return x_i_n
+
+
+def testMDCT():
+    N = 2048
+    x = np.random.normal(size=N)
+    X_forward = forward_MDCT(0,0,N,x)
+    print(X_forward, len(X_forward))
+
+    X_orig = inverse_MDCT(0,0,N,X_forward)
+    print(x)
+    print(X_orig)
+
+
+if __name__ == "__main__":
+    testMDCT()

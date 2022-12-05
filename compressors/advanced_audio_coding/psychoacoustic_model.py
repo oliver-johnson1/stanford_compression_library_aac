@@ -1,8 +1,17 @@
 import numpy as np
 from scalefactor_bands import get_scalefactor_bands
 
-def calculateThresholds(X, s_h, s_l, thr_q_prev,thr_quiet):
-    """
+def calculateThresholdsOnBlock(B):
+    thr_q = np.zeros_like(B[0])
+    thresholds = []
+    for X in B:
+        thr, thr_q = calculateThresholds(X,thr_q)
+        thresholds.append(thr)
+    
+    return np.array(thresholds)
+
+def calculateThresholds(X, thr_q_prev, thr_quiet = None):
+    """ 
     Calculate psychoacoustic threshold thr(n), an upper limit for the
     quantization noise of the coder.
 
@@ -18,6 +27,10 @@ def calculateThresholds(X, s_h, s_l, thr_q_prev,thr_quiet):
     thr_q: used for next calculateThresholds calculation
 
     """
+
+    # Calculate spreaded energy
+    s_l, s_h = calculateSpreadedEnergy()
+
     # Calculation of the energy spectrum
     scalefactor, N = get_scalefactor_bands()
     en = np.zeros(N)
@@ -29,7 +42,7 @@ def calculateThresholds(X, s_h, s_l, thr_q_prev,thr_quiet):
     # from energy to threshold
     SNR = 29 #dB
     SNR_linear = 10**(SNR/10)
-    thr_scaled = en/SNR_linear
+    thr_scaled = en/SNR
 
     # spreading
     thr_spr_prime = np.zeros(N)
@@ -48,6 +61,7 @@ def calculateThresholds(X, s_h, s_l, thr_q_prev,thr_quiet):
 
     # threshold in quiet
     thr_q = np.zeros(N)
+    # Skipping this for now
     """
     for n in range(N):
         thr_q[n] = max(thr_spr[n],thr_quiet[n])
@@ -58,8 +72,8 @@ def calculateThresholds(X, s_h, s_l, thr_q_prev,thr_quiet):
     rpmin = 0.01
     thr = np.zeros(N)
     for n in range(N):
-        thr[n] = max(rpmin*thr_q[n],min(thr_q[n],rpelev*thr_q_prev) )
-    
+        thr[n] = max(rpmin*thr_q[n],min(thr_q[n],rpelev*thr_q_prev[n]) )
+    print('thr', thr)
     return thr, thr_q
 
 
@@ -75,9 +89,9 @@ def calculateSpreadedEnergy(bitrate=44100):
     #
     s_l = 30 * delta_bark
     if bitrate > 22000:
-        s_h = 100 * delta_bark # or 10**(20/10)=100
+        s_h = 20 * delta_bark # or 10**(20/10)=100
     else:
-        s_h = 31.62 * delta_bark # or 10**(15/10)=31.62
+        s_h = 15 * delta_bark # or 10**(15/10)=31.62
     return s_l, s_h
 
 def freq_to_bark(freq):
@@ -85,5 +99,5 @@ def freq_to_bark(freq):
 
 
 if __name__ == "__main__":
-    s_l, s_h = calculateSpreadedEnergy()
-    print(calculateThresholds(1000*np.ones([1024]),s_h,s_l,0,0))
+
+    print(calculateThresholds(1000*np.ones([1024]),np.zeros(1000)))

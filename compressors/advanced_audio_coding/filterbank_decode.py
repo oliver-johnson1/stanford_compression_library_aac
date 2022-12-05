@@ -5,7 +5,7 @@ from window_block_swtiching import window, overlap_add
 from filterbank_encode import filterbank_encoder
 import numpy as np
 
-def filterbank_decoder(spec, window_sequence, window_shape, prev_window_seq):
+def filterbank_decoder(spec, i, window_sequence = 0, window_shape = 0):
     """
     Inputs: 
         - inversely quantized spectra (spec???) 
@@ -92,8 +92,10 @@ def filterbank_decoder(spec, window_sequence, window_shape, prev_window_seq):
     left = z_i_n[:1024]
     right = z_i_n[1024:]
 
-    dataL = np.dot(w,left)
-    dataR = np.dot(w,right)
+    # dataL = np.dot(w,left)
+    dataL = np.array(w) * left
+    # dataR = np.dot(w,right)
+    dataR = np.array(w) * right
     out_i_n = np.append(dataL, dataR)
 
     return out_i_n
@@ -106,19 +108,22 @@ if __name__ == "__main__":
     Fs = 44100
     f = 3000.0
     n = np.arange(N)
-    x = np.cos(2 * np.pi * f * n / Fs) # generated fake signal
+    # x = np.cos(2 * np.pi * f * n / Fs) # generated fake signal
+    x = np.ones(N)
+    print(x)
 
     seq = 0
     shape = 0
-    x_i_k = filterbank_encoder(x, seq, shape)
-    
+    x_i_k = filterbank_encoder(x, 1, x, seq, shape)
+    print(x_i_k)
     # testig decoder
     prev_win_seq = None
-    prev_win_seq = filterbank_decoder(x_i_k, seq, shape,prev_win_seq)
+    prev_win_seq = filterbank_decoder(x_i_k, 1, window_sequence = 0, window_shape = 0)
     # print(prev_win_seq, 'first filterbank decode')
     print(len(prev_win_seq))
     ### Since decoder relies on previous window sequence to overlap and add, use previous filterbank decode output
     # print(filterbank_decoder(x_i_k, seq, shape,prev_win_seq))
     # second_window = filterbank_decoder(x_i_k, seq, shape,prev_win_seq)
     # print(len(second_window))
+    print(prev_win_seq)
     print(x == prev_win_seq)
