@@ -10,6 +10,7 @@ from scipy.io import wavfile
 import numpy as np
 import os
 from utils.bitarray_utils import BitArray, uint_to_bitarray, bitarray_to_uint
+
 from divide_data import creating_blocks
 
 # importing files that contain the functions for the block diagram
@@ -70,27 +71,18 @@ def bit_stream_format_encode(wav_data, fs=44100, channels=1):
     bitstream += uint_to_bitarray(padded_zeros, bit_width=11) # num of padded zeros at most will be 2047
 
     # call the filterbank, return windowed vals and the window shapes (which are assumed to be LONG)
-    filtered_data = []
-    # initialize prev window to be zeros (since nothing came before)
-    prev = np.zeros(2048)
     frame_length = 2048
     halflen = frame_length // 2
     waveform_pad = tf.pad(wav_data.astype(float), [[halflen, 0],])
     filtered_data = tf.signal.mdct(waveform_pad, frame_length, pad_end=True,
                             window_fn=tf.signal.kaiser_bessel_derived_window)
-
-
-    # for i in range(num_blocks):
-    #     # call filterbank encode (with default vals: kbd window shape, long seq)
-    #     # (since using default values, window_seq = 0, window_shape = 0)
-    #     window_seq = 0
-    #     window_shape = 0
-    #     filtered_data.append(filterbank_encoder(blocked_data[i], i, prev, window_seq, window_shape))
-    #     prev = blocked_data[i]
     
     # from filterbank, add window data and window seq to bitstream (1 bit each)
     window_seq = 0
-    window_shape = 0
+    window_shape = 1
+    # filtered_data = filterbank_encoder(blocked_data, 
+    #                 window_sequence = window_seq, window_shape = window_shape)
+
     bitstream += uint_to_bitarray(window_seq, bit_width=1)
     bitstream += uint_to_bitarray(window_shape, bit_width=1)
 
@@ -179,18 +171,17 @@ def bit_stream_format_decode(bitstream, smallest, largest):
 
     inverse_quant_data_unflattened = np.resize(inverse_quant_data, (len(inverse_quant_data)//1024, 1024))
     # inverse filterbank (filterbank decode)
-    # audio_data = []
-    # for i in range(num_blocks):
-    #     window_sequence = 0
-    #     window_shape = 0
-    #     fd = filterbank_decoder(inverse_quant_data[i], i, window_sequence, window_shape)
-    #     audio_data.append(fd)
     # print(inverse_quant_data_unflattened)
+    print(inverse_quant_data_unflattened.size)
     inverse_mdct = tf.signal.inverse_mdct(inverse_quant_data_unflattened,
                                             window_fn=tf.signal.kaiser_bessel_derived_window)
+    print('length of inverse mdct & zeros', len(inverse_mdct), num_zeros)
     frame_length = 2048
     halflen = frame_length // 2
     audio_data = inverse_mdct[halflen: halflen + 2694528//12]
+    # inverse_mdct = filterbank_decoder(inverse_quant_data_unflattened, 
+    #                 window_sequence = window_seq, window_shape = window_shape)
+    # audio_data = inverse_mdct[:-num_zeros]
 
     # theoretically, should get the audio data back
 
@@ -198,10 +189,6 @@ def bit_stream_format_decode(bitstream, smallest, largest):
 
 
 if __name__ == "__main__":
-    # pass
-    # cur_dir = os.getcwd()
-    # filepath = os.path.join(cur_dir,"advanced_audio_coding/original.wav")
-    # print(load_wav_audio(filepath))
     audio_arr, audio_sr = load_wav_audio('original.wav')
 
     data_sample = audio_arr[:2694528//(12)]
@@ -216,6 +203,8 @@ if __name__ == "__main__":
     print('processed',dec_data)
     dec_data_flattened = np.array(dec_data).flatten()
     print('length',len(dec_data_flattened))
+    np.allclose(data_sample, dec_data_flattened, rtol=1e-3, atol=1e-4)
+
     # thresholds = calculateThresholdsOnBlock(B)
     # Need to normalize
     dec_data_flattened = dec_data_flattened/dec_data_flattened.max()*32768

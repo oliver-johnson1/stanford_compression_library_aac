@@ -23,4 +23,4 @@ def creating_blocks(raw_data):
     # split raw data by number of blocks
     block_data = np.split(raw_data, num_blocks)
 
-    return block_data, num_blocks, remainder
+    return block_data, num_blocks, 2048-remainder

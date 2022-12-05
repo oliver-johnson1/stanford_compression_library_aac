@@ -5,9 +5,12 @@ from window_block_swtiching import window
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+import scipy
+from divide_data import creating_blocks
+from filterbank_decode import filterbank_decoder
 
 
-def filterbank_encoder(x_i_n, i, prev, window_sequence=0, window_shape=0):
+def filterbank_encoder(x_i_n, window_sequence=0, window_shape=1):
     """
     Forward filterbank to encode the sequence
 
@@ -29,72 +32,58 @@ def filterbank_encoder(x_i_n, i, prev, window_sequence=0, window_shape=0):
         
 
     """
-    X_i_k = []
-    tracking_window_shapes = []
-    # i = 0 #Block idx, initial is zero
-    # z_in = np.zeros(shape=(2,1024))
-    prev_x_i_n = prev[:1024]
-    prev_window_shape = 0
-    print('x_i_n',len(x_i_n))
-    # window sequence is 2 bits (the bits correspond to the cases)
+    prev_window_shape = 1
     N, seq_type = get_window_sequence(window_sequence)
+    w = window(N, window_shape, seq_type, prev_window_shape)
+    print(np.array(x_i_n).shape)
+    print(w.shape)
+    x_i_n_blocks = np.multiply(np.array(x_i_n), w)
+    print(x_i_n_blocks.shape)
 
-    ###NOTE For k in range N/2 (from MDCT range pg. 170)? loop through spectral coeff idx (does that makes sense???) (no, since k is just in range 0 to N/2)
-    for k in range(int(N/2)):
-        # if i == 0:
-        #     prev = 0
-        #     i += 1
-        # else:
-        #     prev = tracking_window_shapes[-1]
-        #     i += 1
+    split_wind = np.split(x_i_n_blocks, 4, axis=-1)
+    frame_first = -np.flip(split_wind[2], [-1]) - split_wind[3]
+    frame_second = split_wind[0] - np.flip(split_wind[1],[-1])
+    frames_first_second = np.concatenate((frame_first, frame_second),
+                                         axis=-1)
+    # type 4 orthonormal DCT of the real windowed signals in frames_rearranged.
+    return scipy.fft.dct(frames_first_second, type=4, n=None, axis=-1, 
+            norm=None, overwrite_x=False, workers=None, orthogonalize=None)
 
-        # take the x_i_n's and 1024 val of previous window_seq concatenated with 1024 vals of current block (= x_prime)
-        # Get the window w 
-        ### TODO: With the EIGHT seq, need to keep track of "i", 
-        # since this is where the block idx matters
-        # and thus, has a different method w/ concatentating???
-        w = window(k, window_shape, seq_type, prev_window_shape)
-
-        # Keep track of previous window shape
-        tracking_window_shapes.append(window_shape)
-
-        ###NOTE concatenate ??
-        # x_i_n_prime??? (and then concatenate x_prime into z_in???)
-        ###NOTE wants 0->1024 of prev, and 1024->2048 of current, but what if it's the EIGHT seq???
-        x_i_n_prime = np.append(prev_x_i_n,x_i_n[1024:])
-        # z_in is the windowed input seq
-        z_in = x_i_n_prime * w
-        # z_in[0] = prev_x_i_n
-        # z_in[1] = x_i_n[1024:]
-        prev_x_i_n = x_i_n[1024:]
-
-        mdct = forward_MDCT(k, i, N, z_in)
-        X_i_k.append(mdct)
-    X_i_k = np.array(X_i_k)
-    ###NOTE return X_i_k? and bitstream control signal
-    return X_i_k
-
-def compare_round_trip():
-    samples = 10000
-    frame_length = 2048
-    # halflen = frame_length // 2
-    waveform = tf.random.normal(dtype=tf.float32, shape=[samples])
+def compare_round_trip(waveform):
     print('waveform', len(waveform))
-    # waveform_pad = tf.pad(waveform, [[halflen, 0],])
-    mdct = tf.signal.mdct(waveform, frame_length, pad_end=False,
+    halflen = len(waveform)//2
+    waveform_pad = tf.pad(waveform, [[halflen, 0],])
+    mdct = tf.signal.mdct(waveform_pad, frame_length, pad_end=True,
                             window_fn=tf.signal.kaiser_bessel_derived_window)
+    print(len(waveform_pad))
     inverse_mdct = tf.signal.inverse_mdct(mdct,
                                             window_fn=tf.signal.kaiser_bessel_derived_window)
+    inverse_mdct = inverse_mdct[halflen: halflen + samples]
     print('inverse len', len(inverse_mdct))
-    # inverse_mdct = inverse_mdct[halflen: halflen + samples]
-    return waveform, inverse_mdct
+
+    return inverse_mdct, mdct
 
 
 if __name__ == "__main__":
     # testing
-    waveform, inverse_mdct = compare_round_trip()
+    samples = 10000
+    frame_length = 2048
+    # halflen = frame_length // 2
+    waveform = tf.random.normal(dtype=tf.float32, shape=[samples])
+
+    inverse_mdct, mdct = compare_round_trip(waveform)
     np.allclose(waveform.numpy(), inverse_mdct.numpy(), rtol=1e-3, atol=1e-4)
-    print(waveform-inverse_mdct)
+
+    blocked_data, num_blocks, padded_zeros = creating_blocks(waveform.numpy())
+    print('num blocks', num_blocks)
+    testing_encode = filterbank_encoder(blocked_data, window_sequence=0, window_shape=1)
+    # np.allclose(mdct, testing_encode, rtol=1e-3, atol=1e-4)
+
+    test_decode = filterbank_decoder(testing_encode, window_sequence = 0, window_shape = 1)
+    # remove padded zeros
+    print(padded_zeros)
+    test_decode = test_decode[:-padded_zeros]
+    np.allclose(waveform.numpy(), test_decode, rtol=1e-3, atol=1e-4)
     # N = 2048
     # Fs = 44100
     # f = 3000.0

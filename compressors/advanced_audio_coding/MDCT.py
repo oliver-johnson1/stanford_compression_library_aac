@@ -19,16 +19,17 @@ def forward_MDCT(k: int, i: int, N: int, z_in: list):
         - X_i_k = 2 * N sum(z[i][n] * cos(2*pi/N * (n+ n_0) * (k+1/2))) for k=0 to <N/2
 
     """
-    X_i_k = 0
+    pass
+    # X_i_k = 0
 
-    n_0 = (N/2 + 1)/2
-    ns = N-1
-    for n in range(ns):
-        ### This is if it's the eight sequence
-        # X_i_k += (z_in[i][n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
-        X_i_k += (z_in[n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
-    X_i_k *= 2
-    return X_i_k
+    # n_0 = (N/2 + 1)/2
+    # ns = N-1
+    # for n in range(ns):
+    #     ### This is if it's the eight sequence
+    #     # X_i_k += (z_in[i][n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
+    #     X_i_k += (z_in[n] * np.cos(2*np.pi/N * (n + n_0) * (k+1/2)))
+    # X_i_k *= 2
+    # return X_i_k
 
 
 def inverse_MDCT(n: int, i: int, N: int,spec: list):

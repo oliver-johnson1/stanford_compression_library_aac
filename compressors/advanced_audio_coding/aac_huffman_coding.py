@@ -9,34 +9,13 @@ import numpy as np
 from compressors.universal_uint_coder import UniversalUintEncoder, UniversalUintDecoder
 from core.data_block import DataBlock
 
-
-# class Histogram:
-#     def __init__(self):
-#         self.LOW_FREQ = 10
-#         self.ESCAPE_CODE = -1
-#         # Stores the occurence probability of each symbol
-#         self.probability = dict()
-#         # Stores the occurence frequency of each symbol
-#         self.statistics = dict()        
-
-#         # Convert dict to ProbabilityDist
-#         prob_dist = ProbabilityDist({k: prob_dict[k] for k in prob_dict})
-    
 def generate_prob_dist(quant_spec):
     """
     Generating a probability dist of the quantized spectra to generate the codebooks for Huffman coding
     """
-    stats = {}
-    prob_dict = {}
-    for i in range(len(quant_spec)):
-        if quant_spec[i] in stats:
-            stats[quant_spec[i]] = stats[quant_spec[i]] + 1
-        else:
-            stats[quant_spec[i]] = 1
-    total_count = sum(stats.values())
-    for key, val in stats.items():
-        prob_dict[key] = val/float(total_count)
-    
+    unique, counts = np.unique(quant_spec, return_counts=True)
+    total_count = sum(counts)
+    prob_dict = dict(zip(unique, counts/total_count))    
     # Convert dict to ProbabilityDist
     prob_dist = ProbabilityDist({k: prob_dict[k] for k in prob_dict})
     return prob_dist
@@ -46,20 +25,14 @@ def aac_huffman_encode(quant_spec):
 
     huff_en = HuffmanEncoder(prob_dist)
 
-    # encoding = BitArray()
     encoded_bitarray = huff_en.encode_block(DataBlock(list(quant_spec)))
-    # for s in quant_spec:
-    #     encoding += huff_en.encode_symbol(s) #assuming encode sym returns a bitarray rn
 
     return encoded_bitarray, prob_dist
 
 def aac_huffman_decode(encoded_bitarray, prob_dist):
     huff_dec = HuffmanDecoder(prob_dist)
     decoded_block, num_bits_consumed = huff_dec.decode_block(encoded_bitarray)
-    # quant_spec = []
-    
-    # for b in encoded_bitarray:
-    #     quant_spec.append(huff_dec.decode_symbol(b))
+
     return decoded_block, num_bits_consumed
 
 def encode_prob_dist(prob_dist: ProbabilityDist) -> BitArray:
@@ -73,9 +46,6 @@ def encode_prob_dist(prob_dist: ProbabilityDist) -> BitArray:
         BitArray: encoded bit array
     """
     #########################
-    # ADD CODE HERE
-    # bits = BitArray(), bits.frombytes(byte_array), uint_to_bitarray might be useful to implement this
-    # raise NotImplementedError("You need to implement encode_prob_dist")
 
     # pickle prob dist and convert to bytes
     pickled_bits = BitArray()
@@ -101,10 +71,7 @@ def decode_prob_dist(bitarray: BitArray):
         num_bits_read (int): the number of bits read from bitarray to decode probability distribution
     """
     #########################
-    # ADD CODE HERE
-    # bitarray.tobytes() and bitarray_to_uint() will be useful to implement this
-    # raise NotImplementedError("You need to implement decode_prob_dist")
-    # first read 32 bits from start to get the length of the pickled sequence
+
     length_bitwidth = 32
     # print(bitarray)
     length_encoding = bitarray[:length_bitwidth]

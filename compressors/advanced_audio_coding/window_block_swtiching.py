@@ -1,19 +1,39 @@
 from scipy import signal
 import numpy as np
 
+def kaiser_window(n_2, a):
+    """
+    Kaiser window, used in kaiser bessel derived window
+    Inputs: 
+        - n_2: half of n number of points
+        - a: alpha (int)
+    Output:
+        - kaiser bessel window
+    
+    """
+    return signal.windows.kaiser(n_2,a)
+
 def ksb(n,a):
     """
+    Kaiser bessel derived window
     Inputs: 
         - n: number of points in the output window (int)
         - a: alpha (int)
     Output:
         w_prime: kaiser-bessel kernel window function (pg. 98, but broken reference)
     """
+    halflen = n // 2
+    kaiserw = kaiser_window(halflen + 1, a)
+    kaiserw_csum = np.cumsum(kaiserw)
+    halfw = np.sqrt(kaiserw_csum[:-1] / kaiserw_csum[-1])
+    window = np.concatenate((halfw, halfw[::-1]), axis=0)
+    return window
+
     # if n >= 0 and n <= N/2:
         # w_prime = (math.pi * a * (1 - (n - N/4)/(N/4)))
         ### Maybe scipy signal kaiser works???
-    w_prime = signal.windows.kaiser(n,a)
-    return w_prime
+    # w_prime = signal.windows.kaiser(n,a)
+    # return w_prime
     # else:
     #     raise("Not within range for ksb")
 
@@ -36,22 +56,24 @@ def get_window_coeffs(window_shape, N, n):
 
     if window_shape == 1:
         if n >= 0 and n <= N/2:
-            w_kbd_left_top = ksb(n,a)
-            w_kbd_left_bot = ksb(N/2,a)
-            # for p in range(n):
-            #     w_kbd_left_top += ksb(p,a)
-            # for p in range(N/2):
-            #     w_kbd_left_bot += ksb(p,a)
-            return np.sqrt(w_kbd_left_top/w_kbd_left_bot)
+            return ksb(n, a)
+            # w_kbd_left_top = ksb(n,a)
+            # w_kbd_left_bot = ksb(N/2,a)
+            # # for p in range(n):
+            # #     w_kbd_left_top += ksb(p,a)
+            # # for p in range(N/2):
+            # #     w_kbd_left_bot += ksb(p,a)
+            # return np.sqrt(w_kbd_left_top/w_kbd_left_bot)
 
         elif N/2 >= 0 and n <= N:
-            w_kbd_right_top = ksb(N-n-1,a)
-            w_kbd_right_bot = ksb(N/2,a)
+            return ksb(n, a)
+            # w_kbd_right_top = ksb(N-n-1,a)
+            # w_kbd_right_bot = ksb(N/2,a)
             # for p in range(N-n-1):
             #     w_kbd_right_top += ksb(p,a)
             # for p in range(N/2):
             #     w_kbd_right_bot += ksb(p,a)
-            return np.sqrt(w_kbd_right_top/w_kbd_right_bot)
+            # return np.sqrt(w_kbd_right_top/w_kbd_right_bot)
 
     elif window_shape == 0:
         #### They are exactly the same for left and right?????????#########
@@ -60,22 +82,33 @@ def get_window_coeffs(window_shape, N, n):
         # elif N/2 >= 0 and n <= N:
             # return math.sin(math.pi / N *(n + 1/2))
 
-def overlap_add(z_l, z_r):
+def overlap_add(signal, overlap_step):
     """
     Almost the same overlap and add within the EIGHT_SHORT window seq 
     First (left) half of every window seq is overlap and add with second (right) half of prev window_seq
 
     Input:
-        - z_l: left (prev_window_seq)
-        - z_r: right (current window_seq)
+        - signal: the overlapped reconstructed signal
+        - overlap_step: the offset where the signal is overlapped
 
     Output:
-        - out_i_n: z_l + z_r (for 0<=n<N/1, N=2048) if bool is not EIGHT_SHORT
+        - out_i_n:  (for 0<=n<N/1, N=2048) if bool is not EIGHT_SHORT
 
     """
+    outer_dim = signal.shape[:-2]
+    print('shapes for overlap add', signal.shape,len(outer_dim), overlap_step)
+    frame_len = signal.shape[1]
+    frames = signal.shape[0]
+
+    output_len = (frame_len //2 + overlap_step) * (frames)
+    print('expected output len', output_len)
+
+    output_shape = np.concatenate([outer_dim, [output_len]],0)
+    print(output_shape)
+    return np.reshape(signal, int(output_shape))
     # if same length, can just add for each index
-    if len(z_r) == len(z_l):
-        return list(np.add(z_l, z_r))
+    # if len(z_r) == len(z_l):
+    #     return list(np.add(z_l, z_r))
     ###NOTE else, not same length for some reason, raise error?
 
 
@@ -85,7 +118,7 @@ def w_left(n, N, prev_window_shape):
     """
     return get_window_coeffs(prev_window_shape, N, n)
 
-def window(n:int, window_shape, seq_type:str, prev):
+def window(n:int, window_shape, seq_type:str, prev = 1):
     """
     Based on the sequence type (ONLY_LONG_SEQ, LONG_START_SEQ, etc.), and n, get the window
 
