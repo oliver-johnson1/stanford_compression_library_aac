@@ -9,6 +9,7 @@ import scipy
 from divide_data import creating_blocks
 from filterbank_decode import filterbank_decoder
 
+from scipy.io import wavfile
 
 def filterbank_encoder(x_i_n, window_sequence=0, window_shape=1):
     """
@@ -32,33 +33,40 @@ def filterbank_encoder(x_i_n, window_sequence=0, window_shape=1):
         
 
     """
+    ##### Something with frames and how tf handles them
     prev_window_shape = 1
     N, seq_type = get_window_sequence(window_sequence)
     w = window(N, window_shape, seq_type, prev_window_shape)
-    print(np.array(x_i_n).shape)
-    print(w.shape)
-    x_i_n_blocks = np.multiply(np.array(x_i_n), w)
-    print(x_i_n_blocks.shape)
+    print(np.array(x_i_n).shape,'block shape')
+    print(w.shape,'window shape')
+    # x_i_n_blocks = np.multiply(np.array(x_i_n), w)
+    x_i_n_blocks = x_i_n * w
+    print(x_i_n_blocks.shape,'window block shape')
+
 
     split_wind = np.split(x_i_n_blocks, 4, axis=-1)
-    frame_first = -np.flip(split_wind[2], [-1]) - split_wind[3]
+    print(len(split_wind),'window split shape')
+    frame_first = -np.flip(split_wind[2],[-1]) - split_wind[3]
+    print(frame_first.shape,'first frame shape')
     frame_second = split_wind[0] - np.flip(split_wind[1],[-1])
     frames_first_second = np.concatenate((frame_first, frame_second),
                                          axis=-1)
-    # type 4 orthonormal DCT of the real windowed signals in frames_rearranged.
+    print(frames_first_second.shape,'concatenated frames shape')
+    # type 4 orthonormal DCT
     return scipy.fft.dct(frames_first_second, type=4, n=None, axis=-1, 
             norm=None, overwrite_x=False, workers=None, orthogonalize=None)
 
 def compare_round_trip(waveform):
     print('waveform', len(waveform))
     halflen = len(waveform)//2
-    waveform_pad = tf.pad(waveform, [[halflen, 0],])
+    waveform_pad = tf.pad(waveform.astype(float), [[halflen, 0],])
+    print(waveform_pad.shape, 'waveform padding shape')
     mdct = tf.signal.mdct(waveform_pad, frame_length, pad_end=True,
                             window_fn=tf.signal.kaiser_bessel_derived_window)
-    print(len(waveform_pad))
+    print(mdct.shape,'len of mdct')
     inverse_mdct = tf.signal.inverse_mdct(mdct,
                                             window_fn=tf.signal.kaiser_bessel_derived_window)
-    inverse_mdct = inverse_mdct[halflen: halflen + samples]
+    inverse_mdct = inverse_mdct[halflen: halflen + len(waveform)]
     print('inverse len', len(inverse_mdct))
 
     return inverse_mdct, mdct
@@ -66,48 +74,41 @@ def compare_round_trip(waveform):
 
 if __name__ == "__main__":
     # testing
-    samples = 10000
+    # samples = 20000
     frame_length = 2048
-    # halflen = frame_length // 2
-    waveform = tf.random.normal(dtype=tf.float32, shape=[samples])
+    # # halflen = frame_length // 2
+    # waveform = tf.random.normal(dtype=tf.float32, shape=[samples])
+    audio_sr, audio_arr = wavfile.read('original.wav', mmap=False)
+
+    data_sample = audio_arr[:2694528//(12)]
+    waveform = data_sample
+    print('original',data_sample)
+    print('original len', len(data_sample))
 
     inverse_mdct, mdct = compare_round_trip(waveform)
-    np.allclose(waveform.numpy(), inverse_mdct.numpy(), rtol=1e-3, atol=1e-4)
+    np.allclose(waveform, inverse_mdct.numpy(), rtol=1e-3, atol=1e-4)
 
-    blocked_data, num_blocks, padded_zeros = creating_blocks(waveform.numpy())
-    print('num blocks', num_blocks)
+    halflen = len(waveform)//2
+    waveform_pad = tf.pad(waveform, [[halflen, 0],])
+    waveform_pad = waveform_pad.numpy()
+    blocked_data = creating_blocks(waveform_pad)
+    # blocked_data, num_blocks, padded_zeros = creating_blocks(waveform_pad)
+    # blocked_data, num_blocks, padded_zeros = creating_blocks(waveform.numpy())
+    # print('num blocks', num_blocks,'num of added zeros:', padded_zeros)
     testing_encode = filterbank_encoder(blocked_data, window_sequence=0, window_shape=1)
     # np.allclose(mdct, testing_encode, rtol=1e-3, atol=1e-4)
+    print(testing_encode.shape,'shape of the encoding')
 
     test_decode = filterbank_decoder(testing_encode, window_sequence = 0, window_shape = 1)
+    frame_length = 2048
+    halflen = frame_length // 2
+    test_decode = test_decode[halflen: halflen + len(waveform)]
     # remove padded zeros
-    print(padded_zeros)
-    test_decode = test_decode[:-padded_zeros]
-    np.allclose(waveform.numpy(), test_decode, rtol=1e-3, atol=1e-4)
-    # N = 2048
-    # Fs = 44100
-    # f = 3000.0
-    # n = np.arange(N)
-    # x = np.cos(2 * np.pi * f * n / Fs) # generated fake signal
-    # mdcts = tf.signal.mdct(
-    #             x,
-    #             N,
-    #             window_fn=tf.signal.kaiser_bessel_derived_window,
-    #             pad_end=False,
-    #             norm=None,
-    #             name=None
-    #         )
-
-    # x_recon = tf.signal.inverse_mdct(
-    #             mdcts,
-    #             window_fn=tf.signal.kaiser_bessel_derived_window,
-    #             norm=None,
-    #             name=None
-    #         )
-    # # seq = 0
-    # # shape = 0
-    # # x_i_k = filterbank_encoder(x, seq, shape)
-    # # print(x_i_k)
-    # # print(len(x_i_k[0]))
-    # print(x)
-    # print(x_recon)
+    # print(padded_zeros)
+    # test_decode = test_decode[:-padded_zeros]
+    assert True == np.allclose(waveform, test_decode, rtol=1e-5, atol=1e-6)
+    assert True == np.allclose(inverse_mdct.numpy(), test_decode, rtol=1e-5, atol=1e-6)
+    print(test_decode)
+    print(waveform)
+    wavfile.write('compressed_testing_filter_separate_tf.wav', audio_sr, inverse_mdct.numpy().astype(np.int16))
+    wavfile.write('orig_new.wav', audio_sr, waveform.astype(np.int16))

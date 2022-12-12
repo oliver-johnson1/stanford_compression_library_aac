@@ -64,22 +64,27 @@ def bit_stream_format_encode(wav_data, fs=44100, channels=1):
     bitstream += uint_to_bitarray(channels, bit_width=1)
 
     ## Need to divide up the raw data into 2048 size blocks, then feed into filerbank
-    blocked_data, num_blocks, padded_zeros = creating_blocks(wav_data)
-
-    # add to bitstream the number of blocks, and number of padded zeros at the end
-    bitstream += uint_to_bitarray(num_blocks, bit_width=16) # num of blocks can range depending on how long the data is
-    bitstream += uint_to_bitarray(padded_zeros, bit_width=11) # num of padded zeros at most will be 2047
-
-    # call the filterbank, return windowed vals and the window shapes (which are assumed to be LONG)
+    # blocked_data, num_blocks, padded_zeros = creating_blocks(wav_data)
+    window_seq = 0
+    window_shape = 1
     frame_length = 2048
     halflen = frame_length // 2
     waveform_pad = tf.pad(wav_data.astype(float), [[halflen, 0],])
+    # blocked_data, num_blocks, padded_zeros = creating_blocks(waveform_pad)
+    # print(padded_zeros,'padded zeros added at the end')
+    waveform_pad = waveform_pad.numpy()
+    blocked_data = creating_blocks(waveform_pad)
+
+    # add to bitstream the number of blocks, and number of padded zeros at the end
+    bitstream += uint_to_bitarray(15, bit_width=16) # num of blocks can range depending on how long the data is
+    bitstream += uint_to_bitarray(10, bit_width=11) # num of padded zeros at most will be 2047
+
+    # call the filterbank, return windowed vals and the window shapes (which are assumed to be LONG)
+    # waveform_pad = tf.pad(wav_data.astype(float), [[halflen, 0],])
     filtered_data = tf.signal.mdct(waveform_pad, frame_length, pad_end=True,
                             window_fn=tf.signal.kaiser_bessel_derived_window)
     
     # from filterbank, add window data and window seq to bitstream (1 bit each)
-    window_seq = 0
-    window_shape = 1
     # filtered_data = filterbank_encoder(blocked_data, 
     #                 window_sequence = window_seq, window_shape = window_shape)
 
@@ -172,21 +177,22 @@ def bit_stream_format_decode(bitstream, smallest, largest):
     inverse_quant_data_unflattened = np.resize(inverse_quant_data, (len(inverse_quant_data)//1024, 1024))
     # inverse filterbank (filterbank decode)
     # print(inverse_quant_data_unflattened)
-    print(inverse_quant_data_unflattened.size)
+    print('inverse quant size', inverse_quant_data_unflattened.size)
     inverse_mdct = tf.signal.inverse_mdct(inverse_quant_data_unflattened,
                                             window_fn=tf.signal.kaiser_bessel_derived_window)
-    print('length of inverse mdct & zeros', len(inverse_mdct), num_zeros)
+    # inverse_mdct = filterbank_decoder(inverse_quant_data_unflattened, 
+    #                 window_sequence = window_seq, window_shape = window_shape)
     frame_length = 2048
     halflen = frame_length // 2
     audio_data = inverse_mdct[halflen: halflen + 2694528//12]
-    # inverse_mdct = filterbank_decoder(inverse_quant_data_unflattened, 
-    #                 window_sequence = window_seq, window_shape = window_shape)
+    print('length of inverse mdct & zeros', len(inverse_mdct), num_zeros)
+    
     # audio_data = inverse_mdct[:-num_zeros]
+    
 
     # theoretically, should get the audio data back
 
     return audio_data
-
 
 if __name__ == "__main__":
     audio_arr, audio_sr = load_wav_audio('original.wav')
@@ -197,15 +203,16 @@ if __name__ == "__main__":
 
     ##### NOTE: Will delete num_blocks and possible thresholds from output
     en_data, smallest, largest = bit_stream_format_encode(data_sample, fs=44100, channels=1)
+    
     print('length of encoded data',len(en_data))
     dec_data = bit_stream_format_decode(en_data, smallest, largest)
 
-    print('processed',dec_data)
+    print('processed data',dec_data, len(dec_data))
     dec_data_flattened = np.array(dec_data).flatten()
-    print('length',len(dec_data_flattened))
+    print('length of decoded data after flattening',len(dec_data_flattened))
     np.allclose(data_sample, dec_data_flattened, rtol=1e-3, atol=1e-4)
 
     # thresholds = calculateThresholdsOnBlock(B)
     # Need to normalize
     dec_data_flattened = dec_data_flattened/dec_data_flattened.max()*32768
-    wavfile.write('compressed_huffman.wav', audio_sr, dec_data_flattened.astype(np.int16))
+    wavfile.write('compressed_testing_filter.wav', audio_sr, dec_data_flattened.astype(np.int16))

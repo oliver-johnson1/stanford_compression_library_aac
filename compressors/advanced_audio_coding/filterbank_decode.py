@@ -24,14 +24,14 @@ def filterbank_decoder(spec, window_sequence = 0, window_shape = 1):
 
     split_result = np.split(idct4, 2, axis=-1)
     reconstruct = np.concatenate((split_result[1],
-                                    -np.flip(split_result[1], [-1]),
-                                    -np.flip(split_result[0], [-1]),
+                                    -np.flip(split_result[1],[-1]),
+                                    -np.flip(split_result[0],[-1]),
                                     -split_result[0]), axis=-1)
     N, seq = get_window_sequence(window_sequence)
     w = window(2 * half_len, window_shape, seq, prev = 1)
     print('decode window', w.size, half_len)
     reconstruct = np.multiply(np.array(reconstruct), w)
-    print(reconstruct.shape)
+    print(reconstruct.shape,'reconstructed shape')
     reconstruct_reshaped = overlap_add(reconstruct, half_len) 
     # reconstruct_reshaped = reconstruct.flatten()
     # print(reconstruct_reshaped.shape)

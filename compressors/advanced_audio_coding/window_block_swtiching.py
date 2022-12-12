@@ -49,10 +49,11 @@ def get_window_coeffs(window_shape, N, n):
     """
 
     # a (alpha) is the kernal window alpha factor
-    if N == 2048:
-        a = 4
-    elif N == 256:
-        a = 6
+    # if N == 2048:
+    #     a = 4
+    # elif N == 256:
+    #     a = 6
+    a = 12
 
     if window_shape == 1:
         if n >= 0 and n <= N/2:
