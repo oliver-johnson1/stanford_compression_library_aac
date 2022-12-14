@@ -98,14 +98,17 @@ def overlap_add(signal, overlap_step):
     """
     outer_dim = signal.shape[:-2]
     print('shapes for overlap add', signal.shape,len(outer_dim), overlap_step)
-    frame_len = signal.shape[1]
-    frames = signal.shape[0]
+    # frame_len = signal.shape[-1]
+    frame_len = 2048
+    frames = signal.shape[-2]
+    print(frames,'franes------frame_len', frame_len,overlap_step)
 
     output_len = (frame_len //2 + overlap_step) * (frames)
+    # output_len = frame_len + overlap_step * (frames - 1)
     print('expected output len', output_len)
 
     output_shape = np.concatenate([outer_dim, [output_len]],0)
-    print(output_shape)
+    print('reshaping to', output_shape)
     return np.reshape(signal, int(output_shape))
     # if same length, can just add for each index
     # if len(z_r) == len(z_l):

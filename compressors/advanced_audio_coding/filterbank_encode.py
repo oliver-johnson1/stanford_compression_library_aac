@@ -36,25 +36,28 @@ def filterbank_encoder(x_i_n, window_sequence=0, window_shape=1):
     ##### Something with frames and how tf handles them
     prev_window_shape = 1
     N, seq_type = get_window_sequence(window_sequence)
-    w = window(N, window_shape, seq_type, prev_window_shape)
-    print(np.array(x_i_n).shape,'block shape')
-    print(w.shape,'window shape')
-    # x_i_n_blocks = np.multiply(np.array(x_i_n), w)
-    x_i_n_blocks = x_i_n * w
+    # w = window(N, window_shape, seq_type, prev_window_shape)
+    # print(np.array(x_i_n).shape,'block shape')
+    # print(w.shape,'window shape')
+    #### x_i_n_blocks = np.multiply(np.array(x_i_n), w)
+    # x_i_n_blocks = x_i_n * w
+    x_i_n_blocks = x_i_n * 1.0 / np.sqrt(2) ### testing if window 
     print(x_i_n_blocks.shape,'window block shape')
 
 
     split_wind = np.split(x_i_n_blocks, 4, axis=-1)
     print(len(split_wind),'window split shape')
-    frame_first = -np.flip(split_wind[2],[-1]) - split_wind[3]
+    frame_first = -np.fliplr(split_wind[2]) - split_wind[3]
     print(frame_first.shape,'first frame shape')
-    frame_second = split_wind[0] - np.flip(split_wind[1],[-1])
-    frames_first_second = np.concatenate((frame_first, frame_second),
-                                         axis=-1)
+    frame_second = split_wind[0] - np.fliplr(split_wind[1])
+    frames_first_second = np.concatenate((frame_first, frame_second), axis=-1)
     print(frames_first_second.shape,'concatenated frames shape')
     # type 4 orthonormal DCT
-    return scipy.fft.dct(frames_first_second, type=4, n=None, axis=-1, 
-            norm=None, overwrite_x=False, workers=None, orthogonalize=None)
+    # dct2 = scipy.fft.dct(frames_first_second, type=2, n=2048, axis=-1, 
+    #         norm=None, overwrite_x=False, workers=None, orthogonalize=None)
+    dct2 = forward_MDCT(N, frames_first_second)
+    dct4 = dct2[..., 1::2]
+    return dct2
 
 def compare_round_trip(waveform):
     print('waveform', len(waveform))
@@ -102,13 +105,12 @@ if __name__ == "__main__":
     test_decode = filterbank_decoder(testing_encode, window_sequence = 0, window_shape = 1)
     frame_length = 2048
     halflen = frame_length // 2
-    test_decode = test_decode[halflen: halflen + len(waveform)]
+    test_decode = abs(test_decode[halflen: halflen + len(waveform)])
     # remove padded zeros
     # print(padded_zeros)
     # test_decode = test_decode[:-padded_zeros]
+    print(waveform, test_decode)
     assert True == np.allclose(waveform, test_decode, rtol=1e-5, atol=1e-6)
     assert True == np.allclose(inverse_mdct.numpy(), test_decode, rtol=1e-5, atol=1e-6)
-    print(test_decode)
-    print(waveform)
-    wavfile.write('compressed_testing_filter_separate_tf.wav', audio_sr, inverse_mdct.numpy().astype(np.int16))
+    wavfile.write('compressed_testing_filter_separate_testing_2.wav', audio_sr, test_decode.astype(np.int16))
     wavfile.write('orig_new.wav', audio_sr, waveform.astype(np.int16))
