@@ -14,6 +14,7 @@ This repository focuses on the Advanced Audio Coding compression model, and cont
     <li><a href="#team-members">Team Members</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
+</details>
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
@@ -50,8 +51,8 @@ If you do not have these packages already, please install them.
 
 <!-- CONTACT -->
 ## Team Members
-[Audrey Lee](https://github.com/Audrey-Lee88)
-[Oliver Johnson]()
+* [Audrey Lee](https://github.com/Audrey-Lee88)
+* [Oliver Johnson]()
 
 <!-- ACKNOWLEDGEMENTS -->
 ## Acknowledgments
