@@ -18,11 +18,13 @@ def filterbank_decoder(spec, window_sequence = 0, window_shape = 1):
     Output: Time domain reconstructed audio signals
     """
 
-    half_len = spec.shape[-1]
+    half_len = spec.shape[-1] 
     # idct2 = (0.5 / half_len) * scipy.fft.dct(spec, type=2, n=2048, axis=-1, 
     #         norm=None, overwrite_x=False, workers=None, orthogonalize=None)
-    idct2 = (0.5 / half_len) * inverse_MDCT(2048,spec)
-    idct4 = idct2[..., 1::2]
+    idct2 = scipy.fft.idct(spec, type=4, n=None, axis=-1, 
+            norm=None, overwrite_x=False, workers=None, orthogonalize=None)
+    # idct2 = (0.5 / half_len) * inverse_MDCT(2048,spec)
+    # idct4 = idct2[..., 1::2]
 
     split_result = np.split(idct2, 2, axis=-1)
     print(split_result[1].shape,'split result 1 shape',idct2.shape)
@@ -35,7 +37,7 @@ def filterbank_decoder(spec, window_sequence = 0, window_shape = 1):
     # w = window(2 * half_len, window_shape, seq, prev = 1)
     # print('decode window', w.size, half_len)
     # reconstruct = reconstruct * w
-    reconstruct *= 1.0 / np.sqrt(2)
+    #reconstruct *= 1.0 / np.sqrt(2)
     print(reconstruct.shape,'reconstructed shape')
     reconstruct_reshaped = overlap_add(reconstruct, half_len) 
     # reconstruct_reshaped = reconstruct.flatten()

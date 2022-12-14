@@ -22,12 +22,14 @@ def forward_MDCT(N: int, z_in):
         - X_i_k = 2 * N sum(z[i][n] * cos(2*pi/N * (n+ n_0) * (k+1/2))) for k=0 to <N/2
 
     """
-    axis_dim = z_in.shape[-1]
-    axis_dim_float = float(axis_dim)
-    scale = 2.0 * cmath.exp(complex(np.array([complex(0, -i * cmath.pi * 0.5 /axis_dim_float) 
-                            for i in range(axis_dim)]).sum()))
-    dct2 = np.real(
-          scipy.fft.rfft(z_in, n=2 * axis_dim)[..., :axis_dim] * scale)
+    # axis_dim = z_in.shape[-1]
+    # axis_dim_float = float(axis_dim)
+    # scale = 2.0 * cmath.exp(complex(np.array([complex(0, -i * cmath.pi * 0.5 /axis_dim_float) 
+    #                         for i in range(axis_dim)]).sum()))
+    # dct2 = np.real(
+    #       scipy.fft.rfft(z_in, n=2 * axis_dim)[..., :axis_dim] * scale)
+    dct2 = scipy.fft.dct(z_in, type=4, n=None, axis=-1, 
+            norm=None, overwrite_x=False, workers=None, orthogonalize=None)
     return dct2              
     # X_i_k = 0
 
@@ -57,7 +59,11 @@ def inverse_MDCT(N: int,spec):
             ###NOTE(is spec an input???)
 
     """
-    return forward_MDCT(N, spec)
+    # return forward_MDCT(N, spec)
+    half_len = spec.shape[-1]
+    idct2 = scipy.fft.idct(spec, type=4, n=None, axis=-1, 
+            norm=None, overwrite_x=False, workers=None, orthogonalize=None)
+    return idct2
     # x_i_n = 0
     # n_0 = (N/2 + 1)/2
     # k_1 = N/2-1
@@ -78,6 +84,8 @@ def testMDCT():
     X_orig = inverse_MDCT(N,X_forward)
     print(x)
     print(X_orig)
+
+    assert np.allclose(x, X_orig,rtol=1e-3, atol=1e-4)
 
 
 if __name__ == "__main__":

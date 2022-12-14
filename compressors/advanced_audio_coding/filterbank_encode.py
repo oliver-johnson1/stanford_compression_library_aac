@@ -1,4 +1,4 @@
-from MDCT import forward_MDCT
+from MDCT import forward_MDCT, inverse_MDCT
 from get_window_sequence import get_window_sequence
 from window_block_swtiching import window  
 
@@ -41,7 +41,7 @@ def filterbank_encoder(x_i_n, window_sequence=0, window_shape=1):
     # print(w.shape,'window shape')
     #### x_i_n_blocks = np.multiply(np.array(x_i_n), w)
     # x_i_n_blocks = x_i_n * w
-    x_i_n_blocks = x_i_n * 1.0 / np.sqrt(2) ### testing if window 
+    x_i_n_blocks = x_i_n #* 1.0 / np.sqrt(2) ### testing if window 
     print(x_i_n_blocks.shape,'window block shape')
 
 
@@ -53,10 +53,10 @@ def filterbank_encoder(x_i_n, window_sequence=0, window_shape=1):
     frames_first_second = np.concatenate((frame_first, frame_second), axis=-1)
     print(frames_first_second.shape,'concatenated frames shape')
     # type 4 orthonormal DCT
-    # dct2 = scipy.fft.dct(frames_first_second, type=2, n=2048, axis=-1, 
-    #         norm=None, overwrite_x=False, workers=None, orthogonalize=None)
-    dct2 = forward_MDCT(N, frames_first_second)
-    dct4 = dct2[..., 1::2]
+    dct2 = scipy.fft.dct(frames_first_second, type=4, n=None, axis=-1, 
+            norm=None, overwrite_x=False, workers=None, orthogonalize=None)
+    # dct2 = forward_MDCT(N, frames_first_second)
+    # dct4 = dct2[..., 1::2]
     return dct2
 
 def compare_round_trip(waveform):
@@ -88,8 +88,8 @@ if __name__ == "__main__":
     print('original',data_sample)
     print('original len', len(data_sample))
 
-    inverse_mdct, mdct = compare_round_trip(waveform)
-    np.allclose(waveform, inverse_mdct.numpy(), rtol=1e-3, atol=1e-4)
+    # inverse_mdct, mdct = compare_round_trip(waveform)
+    # np.allclose(waveform, inverse_mdct.numpy(), rtol=1e-3, atol=1e-4)
 
     halflen = len(waveform)//2
     waveform_pad = tf.pad(waveform, [[halflen, 0],])
@@ -105,12 +105,17 @@ if __name__ == "__main__":
     test_decode = filterbank_decoder(testing_encode, window_sequence = 0, window_shape = 1)
     frame_length = 2048
     halflen = frame_length // 2
-    test_decode = abs(test_decode[halflen: halflen + len(waveform)])
+    test_decode = test_decode[halflen: halflen + len(waveform)]
     # remove padded zeros
     # print(padded_zeros)
     # test_decode = test_decode[:-padded_zeros]
     print(waveform, test_decode)
-    assert True == np.allclose(waveform, test_decode, rtol=1e-5, atol=1e-6)
-    assert True == np.allclose(inverse_mdct.numpy(), test_decode, rtol=1e-5, atol=1e-6)
+    # assert np.allclose(waveform, test_decode, rtol=1e-5, atol=1e-6)
+    # assert np.allclose(inverse_mdct.numpy(), test_decode, rtol=1e-5, atol=1e-6)
     wavfile.write('compressed_testing_filter_separate_testing_2.wav', audio_sr, test_decode.astype(np.int16))
     wavfile.write('orig_new.wav', audio_sr, waveform.astype(np.int16))
+
+    # x = forward_MDCT(len(data_sample), waveform)
+    # y = inverse_MDCT(len(data_sample,),x)
+    # print('transformed',y)
+    # wavfile.write('checking_dct.wav', audio_sr, y.astype(np.int16))
