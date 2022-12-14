@@ -51,8 +51,8 @@ If you do not have these packages already, please install them.
 
 <!-- CONTACT -->
 ## Team Members
-[Audrey Lee](https://github.com/Audrey-Lee88)
-[Oliver Johnson]()
+* [Audrey Lee](https://github.com/Audrey-Lee88)
+* [Oliver Johnson]()
 
 <!-- ACKNOWLEDGEMENTS -->
 ## Acknowledgments
