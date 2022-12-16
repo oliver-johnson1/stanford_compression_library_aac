@@ -5,12 +5,14 @@ globalGain = 0
 
 
 
+def newQuantization(F,S):
+    return 0
+
 def forwardQuantization(X, scf):
     N = len(X)
     X_quant = np.zeros(N)
     for k in range(N):
         X_quant[k] = np.sign(X[k])*int((np.abs(X[k])*2**(0.25*(scf[k]-globalGain)))**0.75 + MAGIC_NUMBER)
-    #print(X_quant)
     return X_quant
 
 def inverseQuantization(X_quant, scf):
@@ -33,6 +35,10 @@ def inverseQuantizationBlock(qB, scf_b):
         B.append(i)
     return B
 # Quantization functions from the assignment
+def quantizeSimple(data,scaling):
+    return np.round(data/scaling)
+def inverseQuantizeSimple(quantized,scaling):
+    return quantized * scaling
 def quantize(A, nlevels):
     """
     Quantize array A to nlevels.
@@ -68,7 +74,25 @@ def forwardQuantization2(X, scalefactors):
     if more_bits < 0 :
         available_bits = mean_bits + max ( more_bits, bit_reservoir_state[frame]- max_bit_reservoir)
 
+def test_quantization():
+    # make some dummy data
+    data = 100*np.random.random(size=100)
+    # make summy scaling coefficients
+    scaling = np.random.randint(1, 11, size=100)
+    # forward quantization
+    data_quant = quantizeSimple(data,scaling)
+    # reverse quantization
+    data_recovered = inverseQuantizeSimple(data_quant,scaling)
+
+    # assert that the difference is less than what the scaling would expect
+    assert np.all(np.abs(data_recovered-data)<=scaling/2)
+
+
+
+
+
 if __name__ == "__main__":
+    test_quantization()
     X = [np.random.normal(size=1024)*1000,np.random.normal(size=1024)*1500]
     scf = [np.ones(1024)*20,np.ones(1024)*20]
     X_quant = forwardQuantizationBlock(X, scf)

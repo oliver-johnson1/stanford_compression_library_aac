@@ -83,7 +83,7 @@ class ProbabilityDist:
 
         sum_of_probs = 0
         for _, prob in prob_dict.items():
-            assert prob >= 1e-6, "probabilities negative or too small cause stability issues"
+            assert prob >= 1e-9, "probabilities negative or too small cause stability issues"
             sum_of_probs += prob
 
         # FIXME: check if this needs a tolerance range

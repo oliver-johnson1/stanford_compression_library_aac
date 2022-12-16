@@ -10,20 +10,27 @@ from scipy.io import wavfile
 import numpy as np
 import os
 from utils.bitarray_utils import BitArray, uint_to_bitarray, bitarray_to_uint
-from divide_data import creating_blocks
+from compressors.advanced_audio_coding.divide_data import creating_blocks
+import matplotlib.pyplot as plt
 
 # importing files that contain the functions for the block diagram
-from filterbank_encode import filterbank_encoder
-from aac_huffman_coding import aac_huffman_encode, aac_huffman_decode, encode_prob_dist, decode_prob_dist
-
-from psychoacoustic_model import calculateThresholds, calculateThresholdsOnBlock
-from scalefactor_bands import get_scalefactor_bands
-from quantization import forwardQuantizationBlock, inverseQuantizationBlock, quantize, unquantize
+from compressors.advanced_audio_coding.filterbank_encode import filterbank_encoder
+from compressors.advanced_audio_coding.aac_huffman_coding import aac_huffman_encode, aac_huffman_decode, encode_prob_dist, decode_prob_dist
+ 
+from compressors.advanced_audio_coding.psychoacoustic_model import calculateThresholds, calculateThresholdsOnBlock, expand
+from compressors.advanced_audio_coding.scalefactor_bands import get_scalefactor_bands
+from compressors.advanced_audio_coding.quantization import forwardQuantizationBlock, inverseQuantizationBlock, quantize, unquantize, quantizeSimple, inverseQuantizeSimple
 
 # importing filterbank decode file
 from filterbank_decode import filterbank_decoder
 
 import tensorflow as tf
+
+def compute_mse(original, reconstruction):
+    """
+    Compute the mean square error.
+    """
+    return ((original - reconstruction)**2).mean()
 
 def load_wav_audio(filepath):
     '''
@@ -34,10 +41,15 @@ def load_wav_audio(filepath):
     # assert len(audio_arr.shape) == 1 # mono
     # return audio_arr, audio_sr
     audio_sr, audio_arr = wavfile.read(filepath, mmap=False)
+    #audio_arr = audio_arr[:,0]
     assert len(audio_arr.shape) == 1 # mono
+
+    # normalize audio
+    audio_arr = audio_arr/32768
+
     return audio_arr, audio_sr
 
-def bit_stream_format_encode(wav_data, fs=44100, channels=1):
+def bit_stream_format_encode(wav_data, fs=44100, channels=1, compression=1):
     """
     Inputs (pg. 2):
         - sample rate -> 4-byte int (default 44100 Hz)
@@ -68,7 +80,7 @@ def bit_stream_format_encode(wav_data, fs=44100, channels=1):
     # add to bitstream the number of blocks, and number of padded zeros at the end
     bitstream += uint_to_bitarray(num_blocks, bit_width=16) # num of blocks can range depending on how long the data is
     bitstream += uint_to_bitarray(padded_zeros, bit_width=11) # num of padded zeros at most will be 2047
-
+    bitstream += uint_to_bitarray(len(wav_data), bit_width=32) # add length of original wav file
     # call the filterbank, return windowed vals and the window shapes (which are assumed to be LONG)
     filtered_data = []
     # initialize prev window to be zeros (since nothing came before)
@@ -76,9 +88,10 @@ def bit_stream_format_encode(wav_data, fs=44100, channels=1):
     frame_length = 2048
     halflen = frame_length // 2
     waveform_pad = tf.pad(wav_data.astype(float), [[halflen, 0],])
-    filtered_data = tf.signal.mdct(waveform_pad, frame_length, pad_end=True,
-                            window_fn=tf.signal.kaiser_bessel_derived_window)
+    filtered_data = np.array(tf.signal.mdct(waveform_pad, frame_length, pad_end=True,
+                            window_fn=tf.signal.kaiser_bessel_derived_window))
 
+    # quantization step
 
     # for i in range(num_blocks):
     #     # call filterbank encode (with default vals: kbd window shape, long seq)
@@ -93,39 +106,33 @@ def bit_stream_format_encode(wav_data, fs=44100, channels=1):
     window_shape = 0
     bitstream += uint_to_bitarray(window_seq, bit_width=1)
     bitstream += uint_to_bitarray(window_shape, bit_width=1)
-
     # Call the psychoacoustic model and return -------
-    #thresholds = calculateThresholdsOnBlock(filtered_data)
+    thresholds, scaling_not_exp, scaling = calculateThresholdsOnBlock(filtered_data, compression=compression)
+    #print(scaling.flatten().tolist())
+
+    # after psychoacoustic, goes into scaling and quantization
+    #scaling = scaling.flatten()
     
-    thresholds = [1*np.ones(1024)]*len(filtered_data)
-    # after psychoacoustic, goes into scaling and quantization    
-    # print(len(thresholds[0]))
+    quant_spec = quantizeSimple(filtered_data, scaling)
 
+    quant_spec_flattened=quant_spec.flatten()
+    data_all = np.concatenate([quant_spec_flattened,scaling_not_exp.flatten()])
+    # encode point between the two arrays
+    bitstream += uint_to_bitarray(len(quant_spec_flattened), bit_width=32)
 
-    ############################# NOTE: Oliver, fill in the number of bits you need for the threshold
-    bitstream += BitArray('0')
-    ################################
-
-    filtered_data = list(np.array(filtered_data).flatten())
-    # quant_spec = forwardQuantizationBlock(filtered_data, thresholds)
-    quant_spec, (smallest, largest) = quantize(filtered_data,nlevels = 64)
-
-    #print(quant_spec)
-    #quant_spec = list(np.array(quant_spec).flatten())
     # then huffman coding, which this gets added to bitstream
     # since encoded data is at the end, it can be however long
-    encoded_data, prob_dist = aac_huffman_encode(quant_spec)
-    # print('probability dist',prob_dist)
-
-    # encode the probability distribution (32 bits for the length of prob dist and then)
+    encoded_data, prob_dist = aac_huffman_encode(data_all)
+    # encode the probability distribution (32 bits for the length of prob dist
     bitstream += encode_prob_dist(prob_dist)
-
     bitstream += encoded_data
+    # bitstream += encode_prob_dist(prob_dist_scaling)
+    # bitstream += encoded_scaling
 
-    return bitstream, smallest, largest
+    return bitstream
 
 
-def bit_stream_format_decode(bitstream, smallest, largest):
+def bit_stream_format_decode(bitstream):
     """
     Inputs:
         - the bitstream
@@ -141,43 +148,39 @@ def bit_stream_format_decode(bitstream, smallest, largest):
         - the uncompressed audio data
     
     """
+    halflen = 1024
     idx = 16
     fs = bitarray_to_uint(bitstream[:idx])
     channels = bitarray_to_uint(bitstream[idx:idx+1])
     idx += 1
     num_blocks = bitarray_to_uint(bitstream[idx: idx + 16])
     idx += 16
-    num_zeros = bitarray_to_uint(bitstream[idx: idx + 11])
+    padded_zeros = bitarray_to_uint(bitstream[idx: idx + 11])
     idx += 11
+    n_samples = bitarray_to_uint(bitstream[idx: idx + 32])
+    idx += 32
     window_seq = bitarray_to_uint(bitstream[idx:idx+1])
     idx += 1
     window_shape = bitarray_to_uint(bitstream[idx:idx+1])
     idx += 1
 
-    #### NOTE: Probably change threshold ###
-    thresholds = bitstream[idx:idx+1]
-    idx += 1
-
+    quantization_values_num = bitarray_to_uint(bitstream[idx: idx + 32])
+    idx += 32
     # print('encoded probability dist length',len(bitstream[idx:idx+32]))
     prob_dist, num_bits_read = decode_prob_dist(bitstream[idx:])
-    print('probability dist num bits read', num_bits_read)
     idx += num_bits_read
-    compressed_data = bitstream[idx:]
-
 
     # Huffman decode
-    decoded_data, num_bits_consumed = aac_huffman_decode(compressed_data, prob_dist)
+    decoded_data, num_bits_consumed = aac_huffman_decode(bitstream[idx:], prob_dist)
+    idx += num_bits_consumed
     #print('decoded_data',decoded_data)
-    
-    #thresholds = [1*np.ones(1024)]*len(decoded_data[0].data_list)
-    # inverse quantize
-    #decode_unflatten = decoded_data.resize(len(decoded_data)//1024, 1024)
-    #inverse_quant_data = inverseQuantizationBlock(decode_unflatten, thresholds)
- 
-    inverse_quant_data = unquantize(np.array(decoded_data.data_list), 64, (smallest, largest))
-    # print('inverse_quant_data',inverse_quant_data, type(inverse_quant_data))
+    quant_values = decoded_data.data_list[:quantization_values_num]
+    scalings = decoded_data.data_list[quantization_values_num:]
+    scalings = expand(np.resize(scalings, (len(scalings)//49, 49)))
 
-    inverse_quant_data_unflattened = np.resize(inverse_quant_data, (len(inverse_quant_data)//1024, 1024))
+    inverse_quant_data = np.resize(np.array(quant_values), (len(quant_values)//halflen, halflen))
+    filterbank_coefficients = inverseQuantizeSimple(inverse_quant_data, scalings)
+    #inverse_quant_data_unflattened = np.resize(inverse_quant_data, (len(inverse_quant_data)//1024, 1024)) * thr_inv
     # inverse filterbank (filterbank decode)
     # audio_data = []
     # for i in range(num_blocks):
@@ -186,37 +189,54 @@ def bit_stream_format_decode(bitstream, smallest, largest):
     #     fd = filterbank_decoder(inverse_quant_data[i], i, window_sequence, window_shape)
     #     audio_data.append(fd)
     # print(inverse_quant_data_unflattened)
-    inverse_mdct = tf.signal.inverse_mdct(inverse_quant_data_unflattened,
-                                            window_fn=tf.signal.kaiser_bessel_derived_window)
+    inverse_mdct = np.array(tf.signal.inverse_mdct(filterbank_coefficients,
+                                            window_fn=tf.signal.kaiser_bessel_derived_window))
     frame_length = 2048
     halflen = frame_length // 2
-    audio_data = inverse_mdct[halflen: halflen + 2694528//12]
+    audio_data = inverse_mdct[halflen:halflen+n_samples]
 
     # theoretically, should get the audio data back
 
     return audio_data
 
+def testEndtoEnd(compression=1):
+    # import audio file (16 bit wav file)
+    audio_arr, audio_sr = load_wav_audio('snippet.wav')
+
+    # Encode audio file
+    en_data = bit_stream_format_encode(audio_arr, fs=audio_sr, channels=1,compression=compression)
+    print('length of encoded data',len(en_data))
+
+    # Decode audio file
+    dec_data = bit_stream_format_decode(en_data)
+
+    dec_data_flattened_int16 = (dec_data*32768).astype(np.int16)
+    wavfile.write('compressed_huffman'+str(compression)+'.wav', audio_sr, dec_data_flattened_int16)
+
+    print('MSE', compute_mse(audio_arr,dec_data))
+    print('kbps', len(en_data)/1024/(len(audio_arr)/audio_sr))
 
 if __name__ == "__main__":
-    # pass
-    # cur_dir = os.getcwd()
-    # filepath = os.path.join(cur_dir,"advanced_audio_coding/original.wav")
-    # print(load_wav_audio(filepath))
-    audio_arr, audio_sr = load_wav_audio('original.wav')
+    testEndtoEnd(1)
+    testEndtoEnd(2)
+    testEndtoEnd(3)
+    testEndtoEnd(4)
+    testEndtoEnd(5)
+    testEndtoEnd(10)
+    #
+    #wavfile.write('snippet.wav', audio_sr, audio_arr[2*2694528:2*2694528+441000].astype(np.int16))
 
-    data_sample = audio_arr[:2694528//(12)]
-    print('original',data_sample)
-    print('original len', len(data_sample))
+    # 441000-1024*430 = 680
+    # 1,368
 
-    ##### NOTE: Will delete num_blocks and possible thresholds from output
-    en_data, smallest, largest = bit_stream_format_encode(data_sample, fs=44100, channels=1)
-    print('length of encoded data',len(en_data))
-    dec_data = bit_stream_format_decode(en_data, smallest, largest)
+    # 6.453100401880862e-05  c =3
 
-    print('processed',dec_data)
-    dec_data_flattened = np.array(dec_data).flatten()
-    print('length',len(dec_data_flattened))
-    # thresholds = calculateThresholdsOnBlock(B)
-    # Need to normalize
-    dec_data_flattened = dec_data_flattened/dec_data_flattened.max()*32768
-    wavfile.write('compressed_huffman.wav', audio_sr, dec_data_flattened.astype(np.int16))
+    # 2.4669114549042774e-05 c=1
+
+    # 300746578653449e-3 c=10
+
+    #MSE 8.98347274603052e-05
+    #kbps 74.467578125
+
+    #MSE 8.927329020313341e-05
+    #kbps 79.6947265625

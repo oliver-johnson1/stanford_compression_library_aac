@@ -1,8 +1,8 @@
-from MDCT import inverse_MDCT
-from get_window_sequence import get_window_sequence
-from window_block_swtiching import window, overlap_add  
+from compressors.advanced_audio_coding.MDCT import inverse_MDCT
+from compressors.advanced_audio_coding.get_window_sequence import get_window_sequence
+from compressors.advanced_audio_coding.window_block_swtiching import window, overlap_add  
 
-from filterbank_encode import filterbank_encoder
+from compressors.advanced_audio_coding.filterbank_encode import filterbank_encoder
 import numpy as np
 
 def filterbank_decoder(spec, i, window_sequence = 0, window_shape = 0):

@@ -1,14 +1,31 @@
 import numpy as np
-from scalefactor_bands import get_scalefactor_bands
+from compressors.advanced_audio_coding.scalefactor_bands import get_scalefactor_bands, get_theshold_in_quiet
 
-def calculateThresholdsOnBlock(B):
+def calculateThresholdsOnBlock(B, compression = 1):
     thr_q = np.zeros_like(B[0])
     thresholds = []
     for X in B:
-        thr, thr_q = calculateThresholds(X,thr_q)
+        thr, thr_q = calculateThresholds(X,np.zeros_like(B[0]))
         thresholds.append(thr)
-    
-    return np.array(thresholds)
+        
+    thresholds = np.array(thresholds)
+
+    thesholds_inv = np.round(compression*np.sqrt(thresholds))+1
+
+    #thesholds_inv = np.ones_like(thesholds_inv)
+
+    thesholds_inv_expanded = expand(thesholds_inv)
+
+    return thresholds, thesholds_inv, thesholds_inv_expanded
+
+def expand(scaling):
+
+    scaling_expanded = np.zeros((scaling.shape[0], 1024))
+    scalefactor, N = get_scalefactor_bands()
+    for n in range(N):
+        scaling_expanded[:,scalefactor[n]:scalefactor[n+1]]=np.expand_dims(scaling[:,n],axis=1)
+    return scaling_expanded
+
 
 def calculateThresholds(X, thr_q_prev, thr_quiet = None):
     """ 
@@ -27,7 +44,6 @@ def calculateThresholds(X, thr_q_prev, thr_quiet = None):
     thr_q: used for next calculateThresholds calculation
 
     """
-
     # Calculate spreaded energy
     s_l, s_h = calculateSpreadedEnergy()
 
@@ -42,7 +58,7 @@ def calculateThresholds(X, thr_q_prev, thr_quiet = None):
     # from energy to threshold
     SNR = 29 #dB
     SNR_linear = 10**(SNR/10)
-    thr_scaled = en/SNR
+    thr_scaled = en/SNR_linear
 
     # spreading
     thr_spr_prime = np.zeros(N)
@@ -58,22 +74,21 @@ def calculateThresholds(X, thr_q_prev, thr_quiet = None):
             thr_spr[n] = thr_spr_prime[n]
         else:
             thr_spr[n] = max(thr_spr_prime[n],s_l[n]*thr_spr_prime[n+1])
-
+    #thr_spr = thr_scaled
     # threshold in quiet
     thr_q = np.zeros(N)
-    # Skipping this for now
-    """
+    thr_quiet = get_theshold_in_quiet()
     for n in range(N):
-        thr_q[n] = max(thr_spr[n],thr_quiet[n])
-    """
-    thr_q = thr_spr
+        thr_q[n] = max(thr_spr[n], thr_quiet[n])
+    
+    #thr_q = thr_spr
     # pre-echo control
     rpelev = 2
     rpmin = 0.01
     thr = np.zeros(N)
     for n in range(N):
         thr[n] = max(rpmin*thr_q[n],min(thr_q[n],rpelev*thr_q_prev[n]) )
-    print('thr', thr)
+    # high threshold -> more quantization
     return thr, thr_q
 
 
@@ -89,9 +104,9 @@ def calculateSpreadedEnergy(bitrate=44100):
     #
     s_l = 30 * delta_bark
     if bitrate > 22000:
-        s_h = 20 * delta_bark # or 10**(20/10)=100
+        s_h = 100 * delta_bark # or 10**(20/10)=100
     else:
-        s_h = 15 * delta_bark # or 10**(15/10)=31.62
+        s_h = 31.62 * delta_bark # or 10**(15/10)=31.62
     return s_l, s_h
 
 def freq_to_bark(freq):

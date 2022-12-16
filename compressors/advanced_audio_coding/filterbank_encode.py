@@ -1,6 +1,6 @@
-from MDCT import forward_MDCT
-from get_window_sequence import get_window_sequence
-from window_block_swtiching import window  
+from compressors.advanced_audio_coding.MDCT import forward_MDCT
+from compressors.advanced_audio_coding.get_window_sequence import get_window_sequence
+from compressors.advanced_audio_coding.window_block_swtiching import window  
 
 import matplotlib.pyplot as plt
 import numpy as np
