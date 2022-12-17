@@ -131,10 +131,10 @@ def run_compression(audio_name, compression=1):
     
     # generates the spectrogram as pngs 
     # with file name from title (audio file name and compression value)
-    title = 'Original ' + audio_name
+    title = 'Original WAV file'
     get_spectrogram(title, audio_arr, audio_sr)
 
-    title2 = 'Compressed ' + audio_name + ' with compression of ' + str(compression)
+    title2 = 'Compressed ' + 'with compression of ' + str(compression)
     get_spectrogram(title2, dec_data, fs)
     return dec_data
 
@@ -167,16 +167,16 @@ def mpeg_spectrogram(mpeg_path):
     """
     mpeg_arr, mpeg_sr = load_wav_audio(mpeg_path)
 
-    title = 'mpeg version'
+    title = 'MPEG AAC'
     get_spectrogram(title, mpeg_arr, mpeg_sr)   
 
 
 if __name__ == "__main__":
     # testing different compression values
     # test_end_to_end()
-    audio_file = 'snippet2.wav'
-    # for i in range(1,3):
-    #     run_compression(audio_file, i)
+    audio_file = 'snippet.wav'
+    for i in [1,3,10, 20]:
+        run_compression(audio_file, i)
 
     mpeg_file = 'aac71k.wav'
     mpeg_spectrogram(mpeg_file)

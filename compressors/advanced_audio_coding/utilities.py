@@ -16,8 +16,6 @@ def get_spectrogram(title, audio_arr, audio_sr):
     Saves these spectrograms as pngs
     """
     plt.specgram(audio_arr, Fs= audio_sr)
-    plt.title(str(title), 
-          fontsize = 14, fontweight ='bold')
     plt.xlabel('Time (Sec)')
     plt.ylabel('Frequency')
     plt.savefig(str(title + '.png'), dpi=250)
