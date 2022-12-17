@@ -1,35 +1,12 @@
 # Stanford Compression Library (AAC Edition!)
-The goal of the library is to help with research in the area of data compression. This is not meant to be fast or efficient implementation, but rather for educational purpose
+This fork of the [Stanford Compression Library](https://github.com/kedartatwawadi/stanford_compression_library) includes a compression algorithm on Advanced Audio Coding (AAC).
 
-This library is currently being used for the course [EE274: Data Compression course, Fall 22]() at Stanford University, to augment the lectures and for homeworks: 
-1. The video lectures with the relevant lecture notes and slides are [https://stanforddatacompressionclass.github.io/Fall22/lectures/](https://stanforddatacompressionclass.github.io/Fall22/lectures/)
-2. The Homeworks are listed here: [https://stanforddatacompressionclass.github.io/notes/](https://stanforddatacompressionclass.github.io/notes/)
-
-This fork of the Stanford Compression Library includes a compression algorithm on Advanced Audio Coding (AAC).
+For a more detailed explanation on AAC, please see the README in the [AAC](compressors/advanced_audio_coding) folder.
 
 ## Compression algorithms
-Here is a list of algorithms implemented.
+Here is a list of algorithms used for AAC:
 - [Huffman codes](compressors/huffman_coder.py)
 - [Advanced Audio Coding](compressors/advanced_audio_coding)
-- [Shannon codes](compressors/shannon_coder.py)
-- [Fano codes](compressors/fano_coder.py)
-- [Shannon Fano Elias](compressors/shannon_fano_elias_coder.py)
-- [Golomb codes](compressors/golomb_coder.py)
-- [Universal integer coder](compressors/universal_integer_coder.py)
-- [rANS](compressors/rANS.py)
-- [tANS](compressors/tANS.py)
-- [Typical set coder](compressors/typical_set_coder.py)
-- [zlib (external)](external_compressors/zlib_external.py)
-- [zstd (external)](external_compressors/zstd_external.py)
-- [Arithmetic coder](compressors/arithmetic_coding.py)
-- [Context-based Adaptive Arithmetic coder](compressors/probability_models.py)
-- [Range coder](compressors/range_coder.py)
-- [Elias Delta code](compressors/elias_delta_uint_coder.py)
-- [LZ77](compressors/lz77.py)
-
-
-NOTE -> the tests in each file should be helpful as a "usage" example of each of the compressors. More details are also available in the lecture [slides](https://stanforddatacompressionclass.github.io/Fall22/lectures/), and the project wiki
-
 
 
 ## Getting started
@@ -55,22 +32,4 @@ NOTE -> the tests in each file should be helpful as a "usage" example of each of
   ```
   py.test -s -v core/data_stream_tests.py
   ```
-
-## Getting started with understanding the library
-In-depth information about the library will be in the comments. Tutorials/articles etc will be posted on the wiki page: 
-https://github.com/kedartatwawadi/stanford_compression_library/wiki/Introduction-to-the-Stanford-Compression-Library
-
-## How to submit code
-
-Run a formatter before submitting PR
-```
-black <dir/file> --line-length 100
-```
-
-Note that the Github actions CI uses flake8 as a lint (see [`.github/workflows/python-app.yml`](.github/workflows/python-app.yml)), which is compatible with the `black` formatter as discussed [here](https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html#flake8).
-
-## Contact
-The best way to contact the maintainers is to file an issue with your question. 
-If not please use the following email:
-- Kedar Tatwawadi: kedart@stanford.edu
 

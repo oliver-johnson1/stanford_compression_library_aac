@@ -172,7 +172,7 @@ def mpeg_spectrogram(mpeg_path):
 
 
 if __name__ == "__main__":
-    # testing different compression values
+    # testing different quantization levels
     # test_end_to_end()
     audio_file = 'snippet.wav'
     for i in [1,3,10, 20]:

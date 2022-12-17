@@ -48,6 +48,11 @@ To run all tests (including tests not within the AAC folder) run
 find . -name "*.py" -exec py.test -s -v {} +
 ```
 
+To run a single test
+```sh
+  py.test -s -v compressors/advanced_audio_coding/quantization.py
+```
+
 <!-- CONTACT -->
 ## Team Members
 * [Audrey Lee](https://github.com/Audrey-Lee88)
