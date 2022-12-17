@@ -175,7 +175,7 @@ if __name__ == "__main__":
     # testing different quantization levels
     # test_end_to_end()
     audio_file = 'snippet.wav'
-    for i in [1,3,10, 20]:
+    for i in [1, 3, 7, 10, 20]:
         run_compression(audio_file, i)
 
     mpeg_file = 'ffmpeg_aac71k.wav'
