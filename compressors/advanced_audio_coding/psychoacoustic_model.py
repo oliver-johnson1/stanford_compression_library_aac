@@ -5,12 +5,20 @@ def calculateThresholdsOnBlock(B, compression = 1):
 
     """
     Computes the thresholds on the whole filterbank output
+    Inputs:
+    B: block of filterbank outputs
+    compression: parameter to decide the level of quantization higher means that
+                 there will be more compression and more quantization noise
+    
+    Outputs:
+    thresholds: raw thresholds values
+    thresholds_scaled: thresholds scaled by log factor
+    thesholds_scaled_expanded: thresholds expanded to cover entire freq range
     """
 
-    thr_q = np.zeros_like(B[0])
     thresholds = []
     for X in B:
-        thr, thr_q = calculateThresholds(X,np.zeros_like(B[0]))
+        thr = calculateThresholds(X)
         thresholds.append(thr)
         
     thresholds = np.array(thresholds)
@@ -28,7 +36,12 @@ def calculateThresholdsOnBlock(B, compression = 1):
 
 def expand(scaling):
     """
-    expands scale factors to whole frequecy range
+    Expands scale factors to whole frequency range
+    Input: 
+    scaling: scalefactor coefficients
+
+    Output:
+    scalefactor coefficents but expanded to each frequency
     """
 
     scaling_expanded = np.zeros((scaling.shape[0], 1024))
@@ -38,21 +51,16 @@ def expand(scaling):
     return scaling_expanded
 
 
-def calculateThresholds(X, thr_q_prev, thr_quiet = None):
+def calculateThresholds(X):
     """ 
     Calculate psychoacoustic threshold thr(n), an upper limit for the
     quantization noise of the coder.
 
     Inputs:
     X: filterbank output
-    scalefactor: list of scalefactor indicies
-    s_h and s_l: output from spreaded energy calculation
-    thr_q_prev: the thr_q value from the previous timestep
-    thr_quiet: thresholds in quiet
 
     Outputs:
     thr: threshold vlaues for each scalefactor band
-    thr_q: used for next calculateThresholds calculation
 
     """
     # Calculate spreaded energy
@@ -85,20 +93,19 @@ def calculateThresholds(X, thr_q_prev, thr_quiet = None):
             thr_spr[n] = thr_spr_prime[n]
         else:
             thr_spr[n] = max(thr_spr_prime[n],s_l[n]*thr_spr_prime[n+1])
+
     # threshold in quiet
     thr_q = np.zeros(N)
     thr_quiet = get_theshold_in_quiet()
     for n in range(N):
         thr_q[n] = max(thr_spr[n], thr_quiet[n])
     
-    # pre-echo control
-    rpelev = 2
     rpmin = 0.01
     thr = np.zeros(N)
     for n in range(N):
-        thr[n] = max(rpmin*thr_q[n],min(thr_q[n],rpelev*thr_q_prev[n]) )
+        thr[n] = rpmin*thr_q[n]
     # high threshold -> more quantization
-    return thr, thr_q
+    return thr
 
 
 def calculateSpreadedEnergy(bitrate=44100):
@@ -123,5 +130,4 @@ def freq_to_bark(freq):
 
 
 if __name__ == "__main__":
-
-    print(calculateThresholds(1000*np.ones([1024]),np.zeros(1000)))
+    print(calculateThresholds(1000*np.ones([1024])))

@@ -157,7 +157,7 @@ def test_end_to_end():
     # Check that mse error is reasonable
     assert mse < 1e-3
     
-    # Check that we also coded the sample rate correctly
+    # Check that we also decoded the sample rate correctly
     assert sr == dec_sr
 
 def mpeg_spectrogram(mpeg_path):
@@ -178,6 +178,6 @@ if __name__ == "__main__":
     for i in [1,3,10, 20]:
         run_compression(audio_file, i)
 
-    mpeg_file = 'aac71k.wav'
+    mpeg_file = 'ffmpeg_aac71k.wav'
     mpeg_spectrogram(mpeg_file)
 
