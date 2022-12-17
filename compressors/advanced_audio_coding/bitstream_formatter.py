@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 # importing files that contain the functions for the block diagram
 from compressors.advanced_audio_coding.filterbank_encode import filterbank_encoder
 from compressors.advanced_audio_coding.aac_huffman_coding import aac_huffman_encode, aac_huffman_decode, encode_prob_dist, decode_prob_dist
- 
+from compressors.advanced_audio_coding.MDCT import forward_filterbank, reverse_filterbank
 from compressors.advanced_audio_coding.psychoacoustic_model import calculateThresholds, calculateThresholdsOnBlock, expand
 from compressors.advanced_audio_coding.scalefactor_bands import get_scalefactor_bands
 from compressors.advanced_audio_coding.quantization import forwardQuantizationBlock, inverseQuantizationBlock, quantize, unquantize, quantizeSimple, inverseQuantizeSimple
@@ -82,14 +82,8 @@ def bit_stream_format_encode(wav_data, fs=44100, channels=1, compression=1):
     bitstream += uint_to_bitarray(padded_zeros, bit_width=11) # num of padded zeros at most will be 2047
     bitstream += uint_to_bitarray(len(wav_data), bit_width=32) # add length of original wav file
     # call the filterbank, return windowed vals and the window shapes (which are assumed to be LONG)
-    filtered_data = []
-    # initialize prev window to be zeros (since nothing came before)
-    prev = np.zeros(2048)
     frame_length = 2048
-    halflen = frame_length // 2
-    waveform_pad = tf.pad(wav_data.astype(float), [[halflen, 0],])
-    filtered_data = np.array(tf.signal.mdct(waveform_pad, frame_length, pad_end=True,
-                            window_fn=tf.signal.kaiser_bessel_derived_window))
+    filtered_data = forward_filterbank(wav_data, frame_length)
 
     # quantization step
 
@@ -189,12 +183,8 @@ def bit_stream_format_decode(bitstream):
     #     fd = filterbank_decoder(inverse_quant_data[i], i, window_sequence, window_shape)
     #     audio_data.append(fd)
     # print(inverse_quant_data_unflattened)
-    inverse_mdct = np.array(tf.signal.inverse_mdct(filterbank_coefficients,
-                                            window_fn=tf.signal.kaiser_bessel_derived_window))
     frame_length = 2048
-    halflen = frame_length // 2
-    audio_data = inverse_mdct[halflen:halflen+n_samples]
-
+    audio_data = reverse_filterbank(filterbank_coefficients, frame_length, n_samples)
     # theoretically, should get the audio data back
 
     return audio_data
@@ -219,7 +209,7 @@ def testEndtoEnd(compression=1):
 if __name__ == "__main__":
     testEndtoEnd(1)
     testEndtoEnd(2)
-    testEndtoEnd(3)
+    testEndtoEnd(3) 
     testEndtoEnd(4)
     testEndtoEnd(5)
     testEndtoEnd(10)

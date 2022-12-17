@@ -1,8 +1,31 @@
 
 import numpy as np
-
+import tensorflow as tf
 # Just the equations for computing inverse Discrete Time Cosine Transform (DTCT)
 # The psychoacoustic model should perform the fft on the input (can implement here as well)
+
+def forward_filterbank(data, frame_length):
+    waveform_pad = tf.pad(data.astype(float), [[frame_length//2, 0],])
+    filtered_data = np.array(tf.signal.mdct(waveform_pad, frame_length, pad_end=True,
+                            window_fn=tf.signal.kaiser_bessel_derived_window))
+    return filtered_data
+
+def reverse_filterbank(filtered_data, frame_length, n_samples):
+    inverse_mdct = np.array(tf.signal.inverse_mdct(filtered_data,
+                                            window_fn=tf.signal.kaiser_bessel_derived_window))
+    recovered_data = inverse_mdct[frame_length//2:frame_length//2+n_samples]
+    return recovered_data
+
+def test_filterbank():
+    N = 10000
+    data = np.random.standard_normal(size=N)
+    frame_length = 2048
+    filtered_data = forward_filterbank(data,frame_length)
+    recovered_data = reverse_filterbank(filtered_data, frame_length, N)
+    print(np.allclose(data,recovered_data,rtol=1e-8,atol=1e-8))
+
+
+
 def forward_MDCT(k: int, i: int, N: int, z_in: list):
     """
     For encoding
@@ -70,4 +93,4 @@ def testMDCT():
 
 
 if __name__ == "__main__":
-    testMDCT()
+    test_filterbank()
