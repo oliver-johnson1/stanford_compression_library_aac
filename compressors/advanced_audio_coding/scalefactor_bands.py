@@ -27,10 +27,17 @@ def get_scalefactor_bands():
 
 
 def get_theshold_in_quiet():
-    qsthr = np.array([40.29,35.29,35.29,32.29,27.29,25.29,25.29,25.29,25.29,27.05,27.05,27.05,27.05,28.3,28.3,28.3,29.27,30.06,30.73,30.73,31.31,31.82,32.28,33.07,33.42,34.04,34.32,34.83,35.29,38.89,39.08,41.75,42.05,47.46,47.84,48.19,53.4,58.61,59,59.52,64.75,69.98,69.98,70.54,70.54,71.08,71.08,71.72,72.09])
-    qsthr1 = 2.2204e-16 * 1024/2 * 10**(qsthr/10)
-    #print(qsthr1)
-    return qsthr1
+    """
+    Refines threshold in quiet values based on table C.15 in ISO/IEC STANDARD 13818-7
+    (Information technology - Generic coding of moving pictures and associated audio 
+    information - Part 7: Advanced Audio Coding (AAC))
+    """
+    qsthr = np.array([40.29,35.29,35.29,32.29,27.29,25.29,25.29,25.29,25.29,27.05,27.05,27.05,27.05,28.3,
+                      28.3,28.3,29.27,30.06,30.73,30.73,31.31,31.82,32.28,33.07,33.42,34.04,34.32,34.83,
+                      35.29,38.89,39.08,41.75,42.05,47.46,47.84,48.19,53.4,58.61,59,59.52,64.75,69.98,
+                      69.98,70.54,70.54,71.08,71.08,71.72,72.09])
+    qsthr_scaled = 2.2204e-16 * 1024/2 * 10**(qsthr/10)
+    return qsthr_scaled
 if __name__ == "__main__":
     print(get_scalefactor_bands())
     print(get_theshold_in_quiet())

@@ -2,6 +2,11 @@ import numpy as np
 from compressors.advanced_audio_coding.scalefactor_bands import get_scalefactor_bands, get_theshold_in_quiet
 
 def calculateThresholdsOnBlock(B, compression = 1):
+
+    """
+    Computes the thresholds on the whole filterbank output
+    """
+
     thr_q = np.zeros_like(B[0])
     thresholds = []
     for X in B:
@@ -10,15 +15,21 @@ def calculateThresholdsOnBlock(B, compression = 1):
         
     thresholds = np.array(thresholds)
 
-    thesholds_inv = np.round(compression*np.sqrt(thresholds))+1
+    # scale thesholds with square root function so that there is a less significant 
+    # difference between large and small values
+    thesholds_scaled = np.round(compression*np.sqrt(thresholds))+1
 
-    #thesholds_inv = np.ones_like(thesholds_inv)
+    # as thesholds are only defined for scale factors (a range of frequencies), we 
+    # expand this so a value is available for each frequency
 
-    thesholds_inv_expanded = expand(thesholds_inv)
+    thesholds_scaled_expanded = expand(thesholds_scaled)
 
-    return thresholds, thesholds_inv, thesholds_inv_expanded
+    return thresholds, thesholds_scaled, thesholds_scaled_expanded
 
 def expand(scaling):
+    """
+    expands scale factors to whole frequecy range
+    """
 
     scaling_expanded = np.zeros((scaling.shape[0], 1024))
     scalefactor, N = get_scalefactor_bands()
@@ -74,14 +85,12 @@ def calculateThresholds(X, thr_q_prev, thr_quiet = None):
             thr_spr[n] = thr_spr_prime[n]
         else:
             thr_spr[n] = max(thr_spr_prime[n],s_l[n]*thr_spr_prime[n+1])
-    #thr_spr = thr_scaled
     # threshold in quiet
     thr_q = np.zeros(N)
     thr_quiet = get_theshold_in_quiet()
     for n in range(N):
         thr_q[n] = max(thr_spr[n], thr_quiet[n])
     
-    #thr_q = thr_spr
     # pre-echo control
     rpelev = 2
     rpmin = 0.01

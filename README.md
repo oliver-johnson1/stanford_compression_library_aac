@@ -1,13 +1,16 @@
-# Stanford Compression Library
+# Stanford Compression Library (AAC Edition!)
 The goal of the library is to help with research in the area of data compression. This is not meant to be fast or efficient implementation, but rather for educational purpose
 
 This library is currently being used for the course [EE274: Data Compression course, Fall 22]() at Stanford University, to augment the lectures and for homeworks: 
 1. The video lectures with the relevant lecture notes and slides are [https://stanforddatacompressionclass.github.io/Fall22/lectures/](https://stanforddatacompressionclass.github.io/Fall22/lectures/)
 2. The Homeworks are listed here: [https://stanforddatacompressionclass.github.io/notes/](https://stanforddatacompressionclass.github.io/notes/)
 
+This fork of the Stanford Compression Library includes a compression algorithm on Advanced Audio Coding (AAC).
+
 ## Compression algorithms
 Here is a list of algorithms implemented.
 - [Huffman codes](compressors/huffman_coder.py)
+- [Advanced Audio Coding](compressors/advanced_audio_coding)
 - [Shannon codes](compressors/shannon_coder.py)
 - [Fano codes](compressors/fano_coder.py)
 - [Shannon Fano Elias](compressors/shannon_fano_elias_coder.py)
